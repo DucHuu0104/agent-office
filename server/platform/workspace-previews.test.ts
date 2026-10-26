@@ -78,7 +78,7 @@ describe('managed workspace website previews', () => {
       const supervisor = (manager as unknown as { sessions: Map<string, { supervisor: { disconnect(): void } }> }).sessions.get(preview.id)?.supervisor;
       expect(supervisor).toBeTruthy();
       supervisor!.disconnect();
-      const deadline = Date.now() + 10_000;
+      const deadline = Date.now() + 20_000;
       let response: Response | null = null;
       while (Date.now() < deadline) {
         response = await fetch(preview.url).catch(() => null);

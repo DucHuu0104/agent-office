@@ -1169,8 +1169,11 @@ createServer((req, res) => {
     const startedResponse = page.waitForResponse((response) => response.url().endsWith('/workspace-preview') && response.request().method() === 'POST');
     await setup.locator('button[type="submit"]').click();
     const started = await startedResponse;
-    if (started.status() !== 201) throw new Error('The workspace preview API did not start the reviewed script.');
-    const startedBody = await started.json();
+    const startedRaw = await started.text();
+    if (started.status() !== 201) throw new Error(`The workspace preview API did not start the reviewed script: HTTP ${started.status()} ${startedRaw.slice(0, 2000)}; server output: ${output.slice(-4000)}`);
+    let startedBody;
+    try { startedBody = JSON.parse(startedRaw); }
+    catch { throw new Error(`The workspace preview API returned non-JSON: ${startedRaw.slice(0, 2000)}.`); }
     await page.locator('dialog.workspace-preview-dialog').waitFor({ state: 'visible', timeout: 15_000 });
     const link = page.locator('dialog.workspace-preview-dialog a[target="_blank"]');
     if (await link.getAttribute('rel') !== 'noopener noreferrer') throw new Error('The preview tab link does not isolate its opener.');
