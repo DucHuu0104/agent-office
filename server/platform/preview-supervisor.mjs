@@ -76,6 +76,8 @@ try {
     }, 2000);
     containerPoll.unref();
   } else {
+    let childOutput = '';
+    const captureChildOutput = (chunk) => { childOutput = `${childOutput}${chunk.toString('utf8')}`.slice(-8000); };
     child = spawn(process.execPath, [config.npmCli, '--silent', 'run', config.script, ...config.npmArgs], {
       cwd: config.cwd,
       env: { ...process.env, ...config.previewEnv },
@@ -84,11 +86,13 @@ try {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
     });
+    child.stdout?.on('data', captureChildOutput);
+    child.stderr?.on('data', captureChildOutput);
     child.stdout?.pipe(process.stdout, { end: false });
     child.stderr?.pipe(process.stderr, { end: false });
-    child.once('error', (error) => { send({ type: 'process_error', message: error.message }); void stop('spawn_error'); });
+    child.once('error', (error) => { send({ type: 'process_error', message: error.message, output: childOutput }); void stop('spawn_error'); });
     child.once('close', (code, signal) => {
-      send({ type: 'process_exit', code, signal });
+      send({ type: 'process_exit', code, signal, output: childOutput });
       if (!stopped) void stop('process_exited');
     });
     await new Promise((resolve, reject) => {

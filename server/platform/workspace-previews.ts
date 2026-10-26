@@ -61,6 +61,7 @@ interface PreviewSupervisorMessage {
   message?: string;
   code?: number | null;
   detail?: string;
+  output?: string;
 }
 
 function officeError(message: string, status: number, code: string): Error & { status: number; code: string } {
@@ -261,6 +262,11 @@ export class WorkspacePreviewManager {
     };
     session.supervisor.stdout?.on('data', capture);
     session.supervisor.stderr?.on('data', capture);
+    session.supervisor.on('message', (message: PreviewSupervisorMessage) => {
+      if (message.type !== 'process_exit' && message.type !== 'process_error') return;
+      const status = message.type === 'process_exit' ? `Preview child exited with code ${message.code ?? 'unknown'}.` : `Preview child error: ${message.message ?? 'unknown error'}.`;
+      capture(`${status}${message.output ? `\n${message.output}` : ''}\n`);
+    });
     session.supervisor.once('exit', () => {
       if (!session.stopping) void this.stop(session.info.id);
     });

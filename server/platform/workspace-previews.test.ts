@@ -69,6 +69,25 @@ describe('managed workspace website previews', () => {
     }
   });
 
+  it('includes child output when a workspace preview exits before becoming ready', async () => {
+    const fixture = await createFixture();
+    const manager = new WorkspacePreviewManager({ dataDir: fixture.dataDir, execution: { mode: 'local-trusted' } });
+    try {
+      await writeFile(join(fixture.root, 'package.json'), JSON.stringify({
+        name: 'preview-fixture', version: '1.0.0',
+        scripts: { preview: `node -e "console.error('preview-fixture-error'); process.exit(23)"` },
+      }));
+      const setup = await manager.describe('project-failure', fixture.root);
+      await expect(manager.start({ projectId: 'project-failure', root: fixture.root, script: 'preview', packageChecksum: setup.packageChecksum, allowNetworkAccess: true }))
+        .rejects.toMatchObject({ code: 'PREVIEW_PROCESS_EXITED', message: expect.stringContaining('preview-fixture-error') });
+      expect(manager.list()).toEqual([]);
+    } finally {
+      await manager.closeAll();
+      await rm(fixture.dataDir, { recursive: true, force: true });
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   it('cleans the preview when its process supervisor loses the owner IPC channel', async () => {
     const fixture = await createFixture();
     const manager = new WorkspacePreviewManager({ dataDir: fixture.dataDir, execution: { mode: 'local-trusted' } });
