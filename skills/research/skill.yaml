@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: research
+version: 1.0.0
+description: Search and compare sources with traceable citations.
+requiredTools: [research.search, research.fetch]

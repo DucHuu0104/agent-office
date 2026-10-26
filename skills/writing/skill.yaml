@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: writing
+version: 1.0.0
+description: Draft and revise content for a specified audience and format.
+requiredTools: [artifacts.create]

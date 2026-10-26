@@ -10,6 +10,10 @@ describe('arquivos das entregas', () => {
     for (const bad of ['/Users/a/.ssh/x.png', '/Users/a/p/.env.png', '/Users/a/p/secret-plan.pdf', '/Users/a/p/server.key', '/Users/a/.aws/c.txt', '/Users/a/.habblaud/remote-tls/ca.pdf', 'rel.png', '/a/../b.png', '/a/b.sh', '/a/id_ed25519']) {
       expect(pathProblem(bad), bad).toBeDefined();
     }
+    expect(pathProblem('C:\\Users\\ana\\projeto\\relatorio.pdf')).toBeUndefined();
+    for (const bad of ['C:\\Users\\ana\\.ssh\\id_rsa.png', 'C:\\Users\\ana\\projeto\\.env.txt', 'C:\\Users\\ana\\projeto\\..\\segredo.pdf']) {
+      expect(pathProblem(bad), bad).toBeDefined();
+    }
   });
 
   it('checkFile: confere o caminho real (link para segredo cai), tamanho e tipo', () => {
@@ -23,7 +27,7 @@ describe('arquivos das entregas', () => {
 
   it('insideKnownFolder: só pastas de projeto que alguma conta conhece, as temporárias e os anexos', () => {
     const known = new Set(['/h/.claude/projects/-Users-ana-loja', '/h/.claude-2/projects/-Users-ana-x-y']);
-    const opts = { accountDirs: ['/h/.claude', '/h/.claude-2'], roots: ['/tmp', '/h/.habblaud/attachments'], exists: (p: string) => known.has(p) };
+    const opts = { accountDirs: ['/h/.claude', '/h/.claude-2'], roots: ['/tmp', '/h/.habblaud/attachments'], exists: (p: string) => known.has(p.replace(/\\/g, '/')) };
     expect(insideKnownFolder('/Users/ana/loja/docs/print.png', opts)).toBe(true);
     expect(insideKnownFolder('/Users/ana/x-y/a.pdf', opts)).toBe(true);
     expect(insideKnownFolder('/tmp/claude/scratch/tela.png', opts)).toBe(true);
@@ -32,5 +36,16 @@ describe('arquivos das entregas', () => {
     expect(insideKnownFolder('/Users/ana/Documents/extrato.pdf', opts)).toBe(false);
     expect(insideKnownFolder('/Users/ana/lojas/a.png', opts)).toBe(false);
     expect(insideKnownFolder('/tmpx/a.png', opts)).toBe(false);
+
+    const windowsAccount = 'C:\\Users\\ana\\.claude';
+    const windowsKnown = new Set([`${windowsAccount}\\projects\\C--Users-ana-loja`]);
+    const windowsOpts = {
+      accountDirs: [windowsAccount],
+      roots: ['C:\\Users\\ana\\.habblaud\\attachments'],
+      exists: (p: string) => windowsKnown.has(p),
+    };
+    expect(insideKnownFolder('C:\\Users\\ana\\loja\\docs\\print.png', windowsOpts)).toBe(true);
+    expect(insideKnownFolder('C:\\Users\\ana\\Documents\\extrato.pdf', windowsOpts)).toBe(false);
+    expect(insideKnownFolder('C:\\Users\\ana\\.habblaud\\attachments\\foto.png', windowsOpts)).toBe(true);
   });
 });

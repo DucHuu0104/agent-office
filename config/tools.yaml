@@ -1,0 +1,26 @@
+schemaVersion: 1
+tools:
+  - id: office.delegate
+    effect: internal
+  - id: memory.search
+    effect: local-read
+  - id: memory.propose
+    effect: internal
+  - id: artifacts.create
+    effect: local-write
+  - id: research.search
+    effect: network-read
+  - id: research.fetch
+    effect: network-read
+  - id: analysis.csv_summary
+    effect: local-read
+  - id: workspace.list
+    effect: local-read
+  - id: workspace.read
+    effect: local-read
+  - id: workspace.write
+    effect: local-write
+  - id: workspace.patch
+    effect: local-write
+  - id: workspace.run_checks
+    effect: process-exec

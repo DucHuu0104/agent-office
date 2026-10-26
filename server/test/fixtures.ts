@@ -6,6 +6,8 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 let n = 0;
+/** chmod mode bits are not the Windows ACL model; Windows inherits access controls from the containing profile directory. */
+export const supportsPosixModeBits = process.platform !== 'win32';
 const uuid = () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
 const ts = (at: number) => new Date(at).toISOString();
 

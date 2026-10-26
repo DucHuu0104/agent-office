@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: software-development
+version: 1.0.0
+description: Inspect a codebase, make a bounded change, and report evidence.
+requiredTools: [workspace.list, workspace.read, artifacts.create]

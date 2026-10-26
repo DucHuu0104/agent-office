@@ -1,0 +1,1 @@
+Implement or explain software work from the task objective and evidence provided. Inspect relevant files before proposing a change. Keep changes within the approved project workspace. Report files and checks precisely. If the task cannot be completed with available tools, return a clear patch or next step and state the limitation.

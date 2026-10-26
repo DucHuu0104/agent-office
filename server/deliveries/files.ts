@@ -5,7 +5,7 @@
 // Node puro e sem dependências: também é importado pelo auxiliar do host (via tsx).
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, posix, win32 } from 'node:path';
 import type { DeliveryAttachmentKind } from '../../shared/types';
 import { tr } from '../../shared/i18n';
 
@@ -38,6 +38,15 @@ const TYPES: Readonly<Record<string, { kind: DeliveryAttachmentKind; type: strin
 const SECRET_DIRS = /(^|\/)(\.ssh|\.gnupg|\.aws|\.azure|\.kube|\.docker|\.password-store|\.config\/gh|\.config\/gcloud|Keychains|\.habblaud\/remote-tls)(\/|$)/i;
 const SECRET_NAMES = /(^|\/)(\.env[^/]*|id_[a-z0-9]+|[^/]*\.(pem|key|p12|pfx|keystore|jks|kdbx)|[^/]*(secret|credential|password|senha|token)[^/]*)$/i;
 
+/** Usa separadores uniformes apenas para as verificações lexicais de segurança. */
+function slashPath(path: string): string {
+  return path.replace(/\\/g, '/');
+}
+
+function absolutePath(path: string): boolean {
+  return isAbsolute(path) || posix.isAbsolute(path) || win32.isAbsolute(path);
+}
+
 export function extensionOf(path: string): string {
   const base = path.split(/[\\/]/).pop() ?? '';
   const dot = base.lastIndexOf('.');
@@ -51,9 +60,10 @@ export function fileType(path: string): { kind: DeliveryAttachmentKind; type: st
 
 /** Motivo para NÃO mostrar o caminho (só olhando o texto), ou undefined. */
 export function pathProblem(path: string): string | undefined {
-  if (!path || path.includes('\0') || !path.startsWith('/') || /(^|\/)\.\.(\/|$)/.test(path)) return tr('caminho inválido');
+  const normalized = slashPath(path);
+  if (!path || path.includes('\0') || !absolutePath(path) || /(^|\/)\.\.(\/|$)/.test(normalized)) return tr('caminho inválido');
   if (!fileType(path)) return tr('tipo de arquivo que não se mostra aqui');
-  if (SECRET_DIRS.test(path) || SECRET_NAMES.test(path)) return tr('arquivo protegido');
+  if (SECRET_DIRS.test(normalized) || SECRET_NAMES.test(normalized)) return tr('arquivo protegido');
   return undefined;
 }
 
@@ -99,12 +109,24 @@ export function insideKnownFolder(
   path: string,
   opts: { accountDirs: readonly string[]; roots: readonly string[]; exists?: (p: string) => boolean },
 ): boolean {
-  if (opts.roots.some((r) => r && path.startsWith(`${r.replace(/\/+$/, '')}/`))) return true;
+  const canonical = (p: string) => slashPath(p).replace(/\/+$/, '');
+  const within = (candidate: string, root: string) => {
+    const c = canonical(candidate);
+    const r = canonical(root);
+    const windows = win32.isAbsolute(candidate) || win32.isAbsolute(root);
+    return (windows ? c.toLowerCase().startsWith(`${r.toLowerCase()}/`) : c.startsWith(`${r}/`));
+  };
+  if (opts.roots.some((r) => r && within(path, r))) return true;
   const exists = opts.exists ?? existsSync;
   // Mesma codificação de sources/watcher.ts (encodeCwd): todo caractere não alfanumérico vira "-".
-  for (let dir = dirname(path); dir.split('/').filter(Boolean).length >= 2; dir = dirname(dir)) {
-    const encoded = dir.replace(/[^a-zA-Z0-9]/g, '-');
-    if (opts.accountDirs.some((acc) => exists(join(acc, 'projects', encoded)))) return true;
+  const winPath = win32.isAbsolute(path);
+  const parent = (p: string) => (winPath ? win32.dirname(p) : dirname(p));
+  for (let dir = parent(path); canonical(dir).split('/').filter(Boolean).length >= 2; dir = parent(dir)) {
+    const encoded = canonical(dir).replace(/[^a-zA-Z0-9]/g, '-');
+    if (opts.accountDirs.some((acc) => {
+      const projectPath = win32.isAbsolute(acc) ? win32.join(acc, 'projects', encoded) : join(acc, 'projects', encoded);
+      return exists(projectPath);
+    })) return true;
   }
   return false;
 }

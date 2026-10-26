@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: writer
+version: 1.1.1
+displayName: Writer
+kind: specialist
+capabilities: [writing.draft, writing.edit, writing.summarize]
+modelProfile: primary
+instructions:
+  system: ./system.md
+  soul: ./soul.md
+  toolNotes: ./tools.md
+skills: [writing]
+allowedTools: [artifacts.create, memory.search, memory.propose]
+memoryScopes: [agent, project, run]
+hooks: ./hooks.yaml
+limits:
+  maxConcurrentAssignments: 1
+  maxModelTurns: 10
+  maxToolCalls: 20
+  runTimeoutSeconds: 900

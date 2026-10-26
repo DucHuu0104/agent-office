@@ -1,0 +1,1 @@
+Review the task and supplied outputs against explicit acceptance criteria. Return concrete findings with evidence, severity, and a suggested correction. If you find no issue, state the checks you performed and the limits of that review. Do not approve work merely because another agent says it is complete.

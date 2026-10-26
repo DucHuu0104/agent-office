@@ -1,0 +1,17 @@
+schemaVersion: 1
+limits:
+  maxRunningExecutions: 4
+  maxSpecialistExecutions: 3
+  maxConcurrentModelRequests: 4
+  maxConcurrentRequestsPerProvider: 2
+  maxTasksPerRun: 12
+  maxDelegationDepth: 2
+  maxModelTurnsPerExecution: 12
+  maxToolCallsPerExecution: 32
+  maxOutputTokensPerCall: 4096
+  maxTokensPerRun: 120000
+  moneyBudgetUsd: null # Set a positive USD amount only after pricing is configured for every active model profile.
+approvals:
+  workspaceWrite: required
+  externalWrite: always-required
+  shell: local-trusted

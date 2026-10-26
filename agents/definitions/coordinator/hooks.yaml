@@ -1,0 +1,43 @@
+schemaVersion: 1
+hooks:
+  before_run:
+    - handler: context.load_project
+      timeoutMs: 2000
+      onError: fail
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  before_model_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_model_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  before_tool_call:
+    - handler: policy.audit_intent
+      timeoutMs: 1000
+      onError: fail
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_tool_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  on_handoff:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_run:
+    - handler: memory.propose_summary
+      timeoutMs: 5000
+      onError: warn
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  on_error:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn

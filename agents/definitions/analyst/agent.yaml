@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: analyst
+version: 1.1.1
+displayName: Analyst
+kind: specialist
+capabilities: [data.csv, data.analyze, data.explain]
+modelProfile: primary
+instructions:
+  system: ./system.md
+  soul: ./soul.md
+  toolNotes: ./tools.md
+skills: [csv-analysis]
+allowedTools: [analysis.csv_summary, workspace.list, workspace.read, artifacts.create, memory.search, memory.propose]
+memoryScopes: [agent, project, run]
+hooks: ./hooks.yaml
+limits:
+  maxConcurrentAssignments: 1
+  maxModelTurns: 10
+  maxToolCalls: 20
+  runTimeoutSeconds: 900

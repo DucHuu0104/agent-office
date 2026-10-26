@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: reviewer
+version: 1.1.1
+displayName: Reviewer
+kind: specialist
+capabilities: [code.review, content.review, evidence.review]
+modelProfile: primary
+instructions:
+  system: ./system.md
+  soul: ./soul.md
+  toolNotes: ./tools.md
+skills: [review]
+allowedTools: [workspace.list, workspace.read, memory.search, memory.propose]
+memoryScopes: [agent, project, run]
+hooks: ./hooks.yaml
+limits:
+  maxConcurrentAssignments: 1
+  maxModelTurns: 8
+  maxToolCalls: 16
+  runTimeoutSeconds: 900

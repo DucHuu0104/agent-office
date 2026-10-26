@@ -2,7 +2,6 @@
 // e implementa o contrato WorldApi consumido pela UI.
 import * as artModule from '../art';
 import { TILE, type ArtModule } from '../art/api';
-import type { OfficeStore } from '../net/store';
 import { DEFAULT_WORLD_OPTIONS, seasonalThemeFor, type Selection, type SocialEvent, type SoundCue, type WorldApi, type WorldOptions, type WorldPlayback } from './api';
 import { loadWorldAssets, type WorldAssets } from './assets';
 import { Camera, overviewFrame } from './camera';
@@ -11,7 +10,7 @@ import { BUILDING_H, COL_W } from './constants';
 import { RECEPTION_ID } from './layout/core';
 import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
-import type { AgentInfo } from '../../../shared/types';
+import type { AgentInfo, OfficeSnapshot } from '../../../shared/types';
 import { rebaseSnapshot } from './playback';
 import { Overlay } from './render/overlay';
 import { Renderer } from './render/renderer';
@@ -50,7 +49,12 @@ export interface CreateWorldOptions {
   visit?: boolean;
 }
 
-export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: CreateWorldOptions = {}): WorldApi & { debug: WorldDebug; visit: VisitWorld } {
+export interface WorldSnapshotStore {
+  snapshot: OfficeSnapshot | null;
+  on(event: 'snapshot', cb: (snapshot: OfficeSnapshot) => void): () => void;
+}
+
+export function createWorld(canvas: HTMLCanvasElement, store: WorldSnapshotStore, o: CreateWorldOptions = {}): WorldApi & { debug: WorldDebug; visit: VisitWorld } {
   let options: WorldOptions = { ...DEFAULT_WORLD_OPTIONS };
   const visitMode = !!o.visit;
   const camera = new Camera();

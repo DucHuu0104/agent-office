@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: csv-analysis
+version: 1.0.0
+description: Inspect and summarize CSV data with deterministic calculations.
+requiredTools: [analysis.csv_summary]

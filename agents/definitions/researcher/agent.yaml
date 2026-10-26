@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: researcher
+version: 1.1.1
+displayName: Researcher
+kind: specialist
+capabilities: [research.search, research.summarize, sources.verify]
+modelProfile: primary
+instructions:
+  system: ./system.md
+  soul: ./soul.md
+  toolNotes: ./tools.md
+skills: [research]
+allowedTools: [research.search, research.fetch, artifacts.create, memory.search, memory.propose]
+memoryScopes: [agent, project, run]
+hooks: ./hooks.yaml
+limits:
+  maxConcurrentAssignments: 1
+  maxModelTurns: 10
+  maxToolCalls: 24
+  runTimeoutSeconds: 900

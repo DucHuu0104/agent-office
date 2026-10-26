@@ -64,6 +64,16 @@ describe('entregas: texto', () => {
     expect(linkedFiles('veja [a](telas/a.png) e [b](https://x.com/b.png) e /Users/ana/.ssh/k.png', '/Users/ana/proj')).toEqual(['/Users/ana/proj/telas/a.png']);
     expect(linkedFiles('[c](relativo.png)')).toEqual([]);
   });
+
+  it('aceita caminhos Windows em links e em texto corrido, sem revelar pastas secretas', () => {
+    expect(linkedFiles('Veja [o PDF](C:\\Users\\ana\\projeto\\relatorio.pdf) e C:\\Users\\ana\\projeto\\print.png')).toEqual([
+      'C:\\Users\\ana\\projeto\\relatorio.pdf',
+      'C:\\Users\\ana\\projeto\\print.png',
+    ]);
+    expect(linkedFiles('Veja [a](docs\\a.png) e C:\\Users\\ana\\.ssh\\chave.png', 'C:\\Users\\ana\\projeto')).toEqual([
+      'C:\\Users\\ana\\projeto\\docs\\a.png',
+    ]);
+  });
 });
 
 describe('entregas: pedidos do transcript', () => {

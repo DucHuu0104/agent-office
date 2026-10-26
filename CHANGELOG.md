@@ -1,14 +1,106 @@
-# Novidades
+# Agent Office — Changelog
 
-O que entrou em cada versão do Habblaud. Cada versão tem a sua seção aqui, e o texto dela vira as notas da
-[release no GitHub](https://github.com/marmottajr/habblaud/releases) (`npm run release`), que o Habblaud abre em
-**Configurações › Sobre › Ver o que mudou**.
-
-O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e os números seguem o
-[versionamento semântico](https://semver.org/lang/pt-BR/): correção sobe o último número (0.2.**1**), novidade sobe o
-do meio (0.**3**.0).
+Visible changes in Agent Office are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Não lançado]
+
+### Adicionado
+
+- **Coordinator asks before guessing missing requirements.** When a request omits an essential behavior or output contract, it asks one focused question and waits for the owner's reply without assigning speculative work.
+- **Private reasoning markup is removed from model output.** Common reasoning blocks are filtered from both streamed events and saved responses, including text retained by the Responses adapter.
+- **Coordinator can repair an invalid plan more precisely.** A rejected plan now provides the model with safe field paths and issue codes while omitting submitted values, helping it correct schema errors without copying untrusted content.
+- **Coordinator tool boundaries are explicit.** The Coordinator is reminded that `submit_plan` is its only callable tool; if a provider returns an unavailable specialist tool call, repair feedback explains the allowed delegation path.
+- **Stateless Responses turns preserve reasoning state.** Requests include the encrypted reasoning content needed to continue a tool-call round trip when responses are not stored.
+- **Model cost limits have a clear setup guide.** The Windows guide explains exact per-model pricing profiles, USD-cap preflight behavior and token-limited runs with unknown USD cost. Explicit owner-confirmed $0 rates are supported without treating missing prices as free.
+- **The Agnes model has a conservative USD estimate.** The primary, coding and Responses profiles use the published $0.05/M input and $0.15/M output list rates for `agnes-2.5-flash`, so USD run limits keep headroom during the provider's current $0 promotion; the account bill remains authoritative.
+
+- **Agent Office keeps Habblaud's lively office presentation.** Each room in the sidebar shows its Coordinator and assigned specialists with pixel avatars, status and live activity; only unassigned specialists appear in the shared pool. Agents keep Habblaud's animated office behavior, while safe task/tool labels update their bubbles, sidebar and bottom activity ticker. The office opens on a full-building view, stays framed when the sidebar grows, and keeps camera, zoom, scene settings and activity feed available; private model reasoning, file contents and raw tool arguments stay out of the visuals.
+- **Release packages can be staged and verified locally.** `npm run office:package` builds a clean prebuilt folder with a production shrinkwrap, bundled CLI and file hashes; the package omits workspace data and environment secrets.
+- **Runs can be paused and resumed from the project conversation.** A pause waits for active model/tool work to reach a checkpoint and never replays pending tool calls. Budget exhaustion pauses safely; resuming requires an owner-approved higher token or USD limit. Unknown tool outcomes remain blocked from resume.
+- **Workspace write approvals show a bounded line diff.** Owners can review added and removed lines against a checksum-matched source snapshot before approving; files too large or binary for comparison keep an explicit notice and the existing checksum-guarded full-content review.
+- **Coordinator routes table summaries through the Analyst tools.** It only describes prompt injection or blocked handoffs when the source contains evidence, and gives a direct answer without irrelevant handoff boilerplate.
+- **Analyst CSV artifacts preserve the deterministic summary.** When an Analyst creates a report, its requested and tool-computed statistics and missing-value assumptions must match the final answer.
+- **Workspace websites can run in a managed preview.** A confirmed `dev`, `preview`, `start`, or `serve` script runs from a filtered temporary snapshot with a loopback-only URL, a separate browser tab, a CSP that blocks framing, a 30-minute TTL, and explicit network-access consent. Docker `npm ci` requires the reviewed lockfile checksum; stop or close the server to remove the preview.
+- **Project artifacts can be previewed in an isolated frame.** Short-lived, project-scoped preview URLs escape text artifacts, block script execution and network requests for HTML, and are revoked when the preview closes.
+- **Project memory can be reviewed as `memory.md`.** The download includes record IDs and revisions; owners can preview edits and import them with a compare-and-swap check. Only accepted owner notes are editable, and each import appends revision history in one SQLite transaction.
+- **Specialists can be drained from the shared roster.** A draining agent stops receiving new assignments, finishes its current task, stays visible in the office and can be reactivated without restarting the server.
+- Added a fixture-backed 40-task quality corpus and a model-free validation command for coding, research, analysis, and orchestration/recovery cases.
+
+- **Model profiles can explicitly use the Responses API.** The adapter streams text and function calls, maps token usage, preserves provider output items across tool turns, and keeps Chat Completions as a separate protocol choice.
+- **Workspace checks can run in a constrained Docker container.** Approval shows scripts, lifecycle hooks, the pinned image, network policy, and resource limits. Optional `npm ci` runs inside the container from a verified lockfile; filtered snapshots omit host dependencies and credentials, and containers are removed after execution.
+- **Chat messages can include validated text attachments.** `.txt`, `.md`, `.csv` and `.json` files are checksum-checked, stored with the conversation and supplied to agents as untrusted reference data.
+- **Coordinator can be guided while a run is active.** Steering commands are sequenced, can target one task or the whole run, are delivered at safe agent checkpoints and are acknowledged in the final response. Run-version checks reject stale commands.
+- **Agent execution respects both per-agent and global hard limits.** Model turns and tool calls stop at the stricter configured limit, and completed or uncertain model attempts remain visible in the usage ledger.
+- **Memory export/import preserves long-term scopes and revision history.** Run scratch notes are excluded; imports require matching projects and agent definitions, skip identical records and reject conflicts without overwriting.
+- **Agent lifecycle hooks recover across server restarts.** Durable callback intents use content-minimized SQLite outbox records, replay idempotently during startup, and clear temporary payloads after completion or bounded failure. Lifecycle audits still store only allowlisted metadata and hashes, never prompts, tool arguments or results.
+- **Long specialist histories are compacted into versioned checkpoints.** The objective, owner steering, recent complete turns, task notes, tool receipt hashes and source checkpoint references remain available while older tool call/output pairs stay recoverable from durable checkpoints.
+- **Agent Office can back up and restore a complete local bundle.** Online SQLite snapshots, referenced artifacts, and agent configuration are hashed and checked on restore; secrets are excluded, and restored configuration can be selected with `OFFICE_CONFIG_DIR`.
+- **The Windows doctor checks local readiness without contacting a model.** It verifies SQLite integrity, required tables, foreign keys and the agent registry; `--live` remains an explicit provider request and `--tools` checks function calling.
+- **The doctor can probe a selected model profile.** Use `--profile <id>` with `--live` to test another registered provider protocol without changing the Coordinator's profile.
+- **Model profiles do not borrow credentials across providers.** A profile with its own environment variable names must be configured explicitly before it can make a request.
+- **Research search provider can be configured.** DuckDuckGo remains the default; Brave Search uses a server-side key, validates results and refuses provider redirects.
+- **A task can have only one live specialist assignment.** Assignment creation and the task's ready-to-assigned transition now commit conditionally in one transaction, with a SQLite uniqueness guard for concurrent dispatchers.
+- **A data directory can be served by only one Agent Office process.** A SQLite exclusive lock prevents concurrent schedulers and migrations, and the lock is released automatically when the process exits.
+- **Ghi nhớ theo project có nguồn, revision và đề xuất từ agent.** Agent chỉ tạo đề xuất; ghi chú không vào context cho đến khi người dùng chấp nhận. Người dùng có thể thêm, sửa hoặc xóa ghi chú; Coordinator và specialist chỉ tìm trong memory của đúng project.
+- **Ghi nhớ có scope cho user, agent, project và run.** Owner có thể tạo ghi chú cá nhân, theo agent và theo project; agent chỉ truy xuất scope được manifest cấp, còn ghi chú run chỉ dùng trong đúng lượt chạy.
+- **Nạp specialist mới từ cấu hình khi server đang chạy.** Nút xem trước kiểm tra tính tương thích và chỉ áp dụng thay đổi append-only sau khi người dùng xác nhận.
+- **Agent Office começa a separar o escritório de agentes do rastreador de sessões do Habblaud.** O fork mantém a licença e a arte original e prepara um runtime local independente.
+- **Arquivos do workspace passam por aprovação explícita.** O Developer mostra o conteúdo e o hash da proposta, grava apenas depois da aprovação e retoma a tarefa do checkpoint correspondente; cancelamentos expiram aprovações pendentes.
+- **Cancelamentos aguardam ferramentas e decisões de aprovação em andamento.** O run só recebe estado terminal depois que o trabalho ativo termina; aprovações pendentes são expiradas na mesma transação que cancela as tarefas. Se o servidor parar durante uma verificação aprovada, o resultado incerto fica registrado e o checkpoint é liberado sem repetir o comando.
+- **Mensagens na mesma conversa passam a ser processadas em sequência.** Mensagens enviadas durante uma execução entram na fila, e cada Coordinator recebe apenas o histórico disponível até a própria solicitação.
+- **Respostas de esclarecimento liberam a conversa.** A próxima mensagem do usuário conclui o turno de pergunta e segue ao Coordinator com a pergunta e a resposta no histórico.
+- **Developer pode propor patches de texto seguros.** Cada alteração precisa corresponder ao checksum e aos trechos exatos; a interface mostra o arquivo completo e só grava após a aprovação do usuário.
+- **O uso de tokens e a reserva do orçamento aparecem no project.** Cada chamada reserva espaço antes do envio; o runtime soma o usage confirmado e conserva a reserva quando o provedor não informa o consumo.
+- **O custo do model só aparece quando o proprietário configura preços versionados para o ID exato do model.** Um limite opcional em USD reserva o máximo de entrada/saída antes de cada chamada e bloqueia o envio quando falta um preço compatível.
+- **Falhas temporárias do model têm retry limitado.** HTTP 429/5xx e falhas de conexão antes da resposta podem ser repetidos até três vezes, com backoff e `Retry-After`; cada tentativa tem uma reserva de tokens própria e continua contabilizada quando o uso fica incerto.
+- **O Developer pode pedir para executar verificações do workspace.** Scripts de teste, build e tipos são mostrados com seus hooks para aprovação e rodam em uma cópia temporária sem `.env` ou `.git`; execução local exige `OFFICE_EXECUTION_MODE=local-trusted` e continua sujeita às permissões da conta do Windows.
+
+### Corrigido
+
+- **Delivery attachments recognize Windows account roots on Linux.** The root check now joins `projects` paths with the matching path flavor, so Windows-style account directories are checked consistently across host platforms.
+- **Node 22.12 development and test workers load TypeScript reliably.** The database worker now registers tsx inside its worker thread; packaged production continues to use the compiled JavaScript worker.
+- **Archiving a selected room keeps another active room open.** Overlapping project-list refresh events no longer cancel the archive action's selection fallback and leave the project panel empty.
+- **Success and information notices now use distinct colors and timers.** Successful agent-registry and memory updates no longer appear as errors, and an older notice timer cannot hide a newer banner.
+- **Malformed tool arguments now reach guarded runtime recovery.** A truncated Coordinator plan is rejected before persistence and receives a bounded repair request; specialist tools reject the raw arguments before side effects and return a tool error for repair.
+- **Coordinator final answers commit with the run outcome.** A crash during finalization can no longer leave a saved answer attached to a run that restarts and generates a duplicate.
+- **Conditional transactions now roll back every write when their guard loses a race.** A stale worker can no longer leave an orphan approval, tool operation or checkpoint after its assignment lease has moved to another fence token.
+- **Workspace read and list now share Windows path protections with writes.** Traversal, UNC/device paths, reserved names, secret locations and NTFS alternate data streams are rejected before filesystem access.
+- **Coordinator direct answers no longer trigger a second summary request.** The response is kept as written, so a plain answer cannot grow an unsupported promise that specialists will be assigned.
+- **Resolved approval payloads are removed after retention expires.** Once an approved, denied or expired decision is at least 14 days old and its run is terminal, the proposed arguments are scrubbed while the decision hash remains for audit; pending and active-run approvals are preserved. Repeated daily pruning counts only newly scrubbed rows.
+- **Coordinator summaries no longer expose tool-protocol markup.** Final text is held until validation; malformed tool syntax falls back to the specialist's readable deliverable.
+- **The live Responses doctor now verifies tool calls reliably.** It uses the provider-supported required-tool choice and a bounded 128-token output allowance for its single `ping` probe.
+- **Coordinators can repair invalid plans before dispatch.** The planner gets up to two bounded correction attempts, and no task or assignment is created unless the corrected plan passes validation.
+- **Coordinator plans are constrained to the available specialist skills.** The plan tool now lists exact capabilities and validates task keys and field lengths before the runtime accepts a plan.
+- **DuckDuckGo search now unwraps provider redirect links.** Research results retain their HTTPS source URLs and can be opened by the public-page fetch tool.
+- **Agent Office stops accepting new commands before shutting down workers.** New write requests receive a retryable response while active requests and event streams are drained before the database and its instance lock are closed.
+- **SQLite schema upgrades keep a verified pre-migration snapshot.** The server checks the backup's integrity and source version before migrating, and startup stops if verification fails.
+- **Restore rejects non-SQLite files before starting the database worker.** Invalid backup headers now return a regular validation error instead of reaching native SQLite initialization.
+- **The packaged doctor, backup and restore commands use the bundled database worker.** They no longer try to load the TypeScript development worker from a production release.
+- **Windows delivery links now accept native absolute paths.** Files in project folders can be attached from `C:\Users\...`, while secret directories and secret-like filenames remain blocked.
+- **Local dictation can find Windows Whisper tools.** The server now resolves `whisper-cli.exe` and `ffmpeg.exe` from `PATH` and searches the configured Windows home directory for a multilingual model.
+- **Agent Office dev server serves the office page in Vite middleware mode.** The `/office` route now uses Vite's multi-page HTML middleware, and its WebSocket configuration uses the current server option.
+- **Tool calls recover from checkpoints without replaying completed actions.** Specialist tool responses are saved before dispatch and completed receipts commit atomically with their checkpoints; approved operations reconcile their durable receipts if a crash occurs before the checkpoint advances.
+- **Conditional recovery events survive optional updates that change no rows.** The event now follows the guarded state change immediately inside the same SQLite transaction. Hard process-kill tests cover approved write and patch recovery, an active leased Writer stream, and lifecycle outbox replay after its audit event commits.
+- **An interrupted approved workspace check stays quarantined until its outcome is reviewed.** If Agent Office stops after the check process finishes but before its receipt commits, restart leaves the operation unknown and does not resume the run or execute the script again.
+- **Archived projects stay visible while browsing the archived list.** Opening an archived room no longer replaces the list with active projects, so it can be restored from the same view.
+- **Agent Office opens correctly before the first project exists.** Project-only controls are now wired when their room is rendered, and a browser smoke checks project creation and persistence across reloads.
+- **Duplicate project creation is safe to retry after an uncertain response.** Reusing the same idempotency key now returns the committed project, including when two matching create requests arrive concurrently; reusing the key with a different request still returns a conflict.
+- **Slow SSE clients no longer retain unbounded event listeners.** A stream that hits Node's write backpressure is closed so EventSource can reconnect from its last durable event ID; a regression test confirms listener cleanup and durable event replay.
+- **Fragmented Chat Completions streams tolerate CRLF split across network chunks.** Tool-call arguments and usage continue to assemble correctly when providers split line endings and JSON fragments across frames.
+- **Expired execution content is pruned automatically.** On startup and daily, terminal-run checkpoints and raw tool receipts older than 14 days are removed, and the old prefix of domain events older than 30 days is deleted. Active-run evidence and user-visible conversation history remain available; stale event clients are asked to reload a snapshot.
+- **Approved workspace writes now have a durable dispatch boundary.** After a restart, a write is reconciled as complete only when the exact approved bytes are already present; an ambiguous or user-modified file is quarantined for inspection without being overwritten. Public web fetches now reject additional special-purpose, translation and transition network ranges, including unsafe answers in mixed DNS results.
+- **Staged attachments are cleared when switching projects.** Files selected for one conversation can no longer be sent accidentally to another project.
+- **Live project updates recover cleanly after reconnects and replay gaps.** The server resumes from `Last-Event-ID`; clients deduplicate events, reload an authoritative snapshot after a gap, and receive an explicit snapshot request when replay is too large.
+- **Agent Office keeps the selected project in sync after a live connection returns.** Background refresh failures are handled as connection state, and opening or reconnecting the event stream reloads the current snapshot without resetting the selected room.
+- **Agent Office respects reduced-motion preferences and narrow screens.** UI animations are suppressed for users who request less motion, and the office layout adapts to a 390px viewport without horizontal scrolling.
+- **Restoring an archived project keeps that room selected.** An out-of-order event refresh can no longer clear the restored room from the project panel.
+- **Agent Office has a Windows user guide.** It covers project workflows, approvals, artifacts, memory, adding specialists, backups, and connection recovery.
+
+## [0.1.0] - 2026-10-25
+
+### Adicionado
+
+- **Agent Office: primeira versão do produto local-first.** Inclui projetos com Coordinator, equipe compartilhada, execução multiagente, artefatos e aprovações explícitas para gravações no workspace.
 
 ## [1.0.3] - 2026-10-16
 

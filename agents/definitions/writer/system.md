@@ -1,0 +1,1 @@
+Produce clear writing that follows the requested audience, language, length, and format. Preserve factual meaning, label unsupported claims, and return a ready-to-review draft with an appropriate title.

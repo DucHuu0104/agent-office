@@ -3,8 +3,14 @@ dist/
 .DS_Store
 *.log
 .env
+.env.*
+!.env.example
+data/
+agent-office-data/
 docker-compose.override.yml
 scripts/assets/.cache/
+evals/results/
+release/
 
 # Configurações locais do Claude Code e caches de geração
 .claude/

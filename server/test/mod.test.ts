@@ -1,5 +1,5 @@
-// Plugins do Claude Code no próprio repositório (.claude-plugin/marketplace.json + mod/): versões alinhadas
-// com o package.json e estrutura que o Claude Code consegue carregar. O comportamento dos mods em si é
+// Plugins herdados do Habblaud: marketplace e plugins mantêm a própria versão, separada da versão do Agent Office.
+// O comportamento dos mods em si é
 // testado pelo Claude Code (`claude plugin test` em mod/habblaud e mod/habblaud-mensagens); aqui fica o que o
 // vitest consegue conferir sem o Claude Code: arquivos, versões, o hook de permissão do plugin rodando de verdade.
 import { spawnSync } from 'node:child_process';
@@ -42,13 +42,13 @@ function importsOf(path: string): string[] {
 }
 
 describe('marketplace e plugins do Claude Code', () => {
-  it('versões do marketplace e dos plugin.json = versão do package.json', () => {
+  it('versões dos plugins legados correspondem ao marketplace Habblaud', () => {
     expect(typeof pkg.version).toBe('string');
-    expect(market.version).toBe(pkg.version);
+    expect(typeof market.version).toBe('string');
     for (const name of PLUGINS) {
-      expect(json(`mod/${name}/.claude-plugin/plugin.json`).version, name).toBe(pkg.version);
+      expect(json(`mod/${name}/.claude-plugin/plugin.json`).version, name).toBe(market.version);
       const entry = entries.find((e) => e.name === name);
-      if (entry?.version !== undefined) expect(entry.version, `entrada ${name}`).toBe(pkg.version);
+      if (entry?.version !== undefined) expect(entry.version, `entrada ${name}`).toBe(market.version);
     }
   });
 

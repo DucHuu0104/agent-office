@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: coordinator
+version: 1.0.1
+displayName: Coordinator
+kind: coordinator
+capabilities: [work.coordinate]
+modelProfile: primary
+instructions:
+  system: ./system.md
+  soul: ./soul.md
+  toolNotes: ./tools.md
+skills: [planning]
+allowedTools: [office.delegate]
+memoryScopes: [user, project, run]
+hooks: ./hooks.yaml
+limits:
+  maxConcurrentAssignments: 1
+  maxModelTurns: 12
+  maxToolCalls: 16
+  runTimeoutSeconds: 1200

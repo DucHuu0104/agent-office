@@ -7,7 +7,7 @@
 // Cada transcript é relido só quando muda (mtime/tamanho). Os anexos ganham ids opacos: o navegador nunca vê caminhos.
 import { createHash } from 'node:crypto';
 import { statSync } from 'node:fs';
-import { isAbsolute, join, normalize } from 'node:path';
+import { isAbsolute, join, normalize, posix, win32 } from 'node:path';
 import { tr } from '../../shared/i18n';
 import type { DeliveryAttachment, DeliveryInfo, Provider, RecentSession, TerminalEntry } from '../../shared/types';
 import type { TerminalParser } from '../sources/terminal';
@@ -29,6 +29,7 @@ const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'apply
 /** Caminhos de arquivo de ver citados na resposta: em links markdown ou soltos. */
 const LINK_RE = /\]\(\s*<?([^)\s>]+?\.(?:png|jpe?g|gif|webp|svg|pdf|mp4|mov|webm|html?))(?::\d+)?>?\s*\)/gi;
 const BARE_RE = /(?:^|[\s(`"'])(\/[^\s`"'()<>]+?\.(?:png|jpe?g|gif|webp|svg|pdf|mp4|mov|webm|html?))(?=$|[\s`"'),.;:!?])/gim;
+const WINDOWS_BARE_RE = /(?:^|[\s(`"'])([a-z]:[\\/][^\s`"'()<>]+?\.(?:png|jpe?g|gif|webp|svg|pdf|mp4|mov|webm|html?))(?=$|[\s`"'),.;:!?])/gim;
 
 export interface SessionSource {
   path: string;
@@ -130,17 +131,28 @@ export function linkedFiles(text: string, project?: string): string[] {
     } catch {
       // fica como veio
     }
-    if (p.startsWith('file://')) p = p.slice(7);
-    if (/^[a-z]+:/i.test(p)) return;
-    if (!isAbsolute(p)) {
-      if (!project) return;
-      p = join(project, p);
+    if (/^file:\/\//i.test(p)) {
+      p = p.slice(7);
+      if (/^\/[a-z]:[\\/]/i.test(p)) p = p.slice(1);
+      else if (!p.startsWith('/')) p = `//${p}`;
     }
-    p = normalize(p);
+    const posixRooted = p.startsWith('/') && !p.startsWith('//');
+    let windowsAbsolute = win32.isAbsolute(p) && !posixRooted;
+    let posixAbsolute = posixRooted || posix.isAbsolute(p);
+    if (/^[a-z]+:/i.test(p) && !windowsAbsolute) return;
+    if (!windowsAbsolute && !posixAbsolute && !isAbsolute(p)) {
+      if (!project) return;
+      const projectIsPosix = project.startsWith('/') && !project.startsWith('//');
+      p = win32.isAbsolute(project) && !projectIsPosix ? win32.join(project, p) : projectIsPosix || posix.isAbsolute(project) ? posix.join(project, p) : join(project, p);
+      windowsAbsolute = !projectIsPosix;
+      posixAbsolute = projectIsPosix;
+    }
+    p = windowsAbsolute ? win32.normalize(p) : posixAbsolute ? posix.normalize(p) : normalize(p);
     if (!pathProblem(p)) out.add(p);
   };
   for (const m of text.matchAll(LINK_RE)) add(m[1]);
   for (const m of text.matchAll(BARE_RE)) add(m[1]);
+  for (const m of text.matchAll(WINDOWS_BARE_RE)) add(m[1]);
   return [...out];
 }
 

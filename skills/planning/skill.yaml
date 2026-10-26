@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: planning
+version: 1.0.0
+description: Turn a request into a small, validated plan with dependencies and outcomes.
+requiredTools: [office.delegate]

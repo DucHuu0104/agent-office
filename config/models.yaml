@@ -1,0 +1,44 @@
+schemaVersion: 1
+# Per-profile pricing is a conservative, manually versioned rate for an exact model ID.
+# Agnes' published list rates are used even during its current $0 promotion so USD caps keep headroom.
+# The provider account bill remains authoritative; missing or mismatched prices remain unknown.
+profiles:
+  primary:
+    protocol: chat-completions
+    baseUrlEnv: MODEL_PRIMARY_BASE_URL
+    apiKeyEnv: MODEL_PRIMARY_API_KEY
+    modelEnv: MODEL_PRIMARY_NAME
+    maxOutputTokens: 4096
+    requestTimeoutSeconds: 120
+    capabilityRequirements: [tool-calling, streaming]
+    pricing:
+      version: agnes-list-2026-10-26
+      modelName: agnes-2.5-flash
+      inputUsdPerMillionTokens: 0.05
+      outputUsdPerMillionTokens: 0.15
+  coding:
+    protocol: chat-completions
+    baseUrlEnv: MODEL_PRIMARY_BASE_URL
+    apiKeyEnv: MODEL_PRIMARY_API_KEY
+    modelEnv: MODEL_PRIMARY_NAME
+    maxOutputTokens: 4096
+    requestTimeoutSeconds: 120
+    capabilityRequirements: [tool-calling, streaming]
+    pricing:
+      version: agnes-list-2026-10-26
+      modelName: agnes-2.5-flash
+      inputUsdPerMillionTokens: 0.05
+      outputUsdPerMillionTokens: 0.15
+  primary-responses:
+    protocol: responses
+    baseUrlEnv: MODEL_RESPONSES_BASE_URL
+    apiKeyEnv: MODEL_RESPONSES_API_KEY
+    modelEnv: MODEL_RESPONSES_NAME
+    maxOutputTokens: 4096
+    requestTimeoutSeconds: 120
+    capabilityRequirements: [tool-calling, streaming]
+    pricing:
+      version: agnes-list-2026-10-26
+      modelName: agnes-2.5-flash
+      inputUsdPerMillionTokens: 0.05
+      outputUsdPerMillionTokens: 0.15

@@ -28,3 +28,36 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  agent-office-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.12'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run office:test -- --maxWorkers=1 --pool=threads
+      - run: npm run office:client-test
+      - run: npm run config:validate
+      - run: npm run i18n:check
+      - name: Build office with secret sentinels
+        run: npm run office:build
+        env:
+          MODEL_PRIMARY_API_KEY: office-ci-primary-secret-sentinel
+          MODEL_RESPONSES_API_KEY: office-ci-responses-secret-sentinel
+          RESEARCH_BRAVE_API_KEY: office-ci-research-secret-sentinel
+      - run: node scripts/check-client-secrets.mjs
+      - run: npm run office:package -- --output-dir release/agent-office-ci
+      - run: npm run office:package -- --verify release/agent-office-ci
+      - run: npm --prefix release/agent-office-ci ci --omit=dev
+      - run: npm --prefix release/agent-office-ci audit --omit=dev
+      - run: npm --prefix release/agent-office-ci run config:validate
+      - run: node scripts/uat-package-smoke.mjs release/agent-office-ci
+      - run: node node_modules/playwright-core/cli.js install chromium
+      - run: npm run office:browser-test

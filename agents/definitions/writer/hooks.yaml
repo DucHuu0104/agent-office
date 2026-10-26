@@ -1,0 +1,33 @@
+schemaVersion: 1
+hooks:
+  before_run:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  before_model_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_model_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  before_tool_call:
+    - handler: policy.audit_intent
+      timeoutMs: 1000
+      onError: fail
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_tool_call:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  after_run:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn
+  on_error:
+    - handler: lifecycle.audit
+      timeoutMs: 1000
+      onError: warn

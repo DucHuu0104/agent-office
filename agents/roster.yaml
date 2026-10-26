@@ -1,0 +1,27 @@
+schemaVersion: 1
+instances:
+  - id: developer-01
+    definition: developer
+    displayName: Linh
+    enabled: true
+    appearanceSeed: 12450
+  - id: reviewer-01
+    definition: reviewer
+    displayName: An
+    enabled: true
+    appearanceSeed: 39560
+  - id: researcher-01
+    definition: researcher
+    displayName: Minh
+    enabled: true
+    appearanceSeed: 21843
+  - id: analyst-01
+    definition: analyst
+    displayName: Huy
+    enabled: true
+    appearanceSeed: 55712
+  - id: writer-01
+    definition: writer
+    displayName: Mai
+    enabled: true
+    appearanceSeed: 33907

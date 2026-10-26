@@ -1,8 +1,8 @@
 {
-  "name": "habblaud",
-  "version": "1.0.3",
+  "name": "agent-office",
+  "version": "0.1.0",
   "private": true,
-  "description": "Escritório virtual animado que mostra, em tempo real, o que seus agentes do Claude Code estão fazendo.",
+  "description": "Local-first multi-agent workspace with a pixel-art office.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -14,6 +14,22 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "office:dev": "node --env-file-if-exists=.env --import tsx server/platform/index.ts --dev",
+    "office:build": "npm run build:client && node scripts/build-platform.mjs",
+    "office:package": "tsx scripts/package-platform.ts",
+    "office:start": "node --env-file-if-exists=.env dist/server/platform.js",
+    "office:browser-test": "node scripts/office-browser-test.mjs",
+    "office:performance-test": "node scripts/office-performance-test.mjs",
+    "office:rollback-smoke": "node scripts/rollback-package-smoke.mjs",
+    "office:client-test": "vitest run client/src/platform",
+    "office:soak": "vitest run server/platform/http.soak.test.ts --reporter=verbose",
+    "eval:validate": "tsx evals/agent-office-v1/validate.ts",
+      "eval:score": "tsx evals/agent-office-v1/score-baseline.ts",
+    "eval:baseline": "node --env-file-if-exists=.env --import tsx evals/agent-office-v1/run-baseline.ts",
+    "config:validate": "node --env-file-if-exists=.env --import tsx server/platform/cli.ts validate",
+    "office:doctor": "node --env-file-if-exists=.env --import tsx server/platform/cli.ts doctor",
+    "office:backup": "node --env-file-if-exists=.env --import tsx server/platform/cli.ts backup",
+    "office:restore": "node --env-file-if-exists=.env --import tsx server/platform/cli.ts restore",
     "dev": "tsx watch --clear-screen=false --exclude './client/**' server/index.ts --dev",
     "dev:client": "vite --config vite.config.ts",
     "demo": "HABBLAUD_DEMO=1 npm run dev",
@@ -25,6 +41,7 @@
     "start": "node dist/server/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p server/tsconfig.json",
     "test": "vitest run",
+    "office:test": "vitest run server/platform",
     "i18n:check": "tsx scripts/i18n-check.ts",
     "docker:up": "tsx scripts/docker-up.ts",
     "docker:down": "tsx scripts/docker-up.ts --down",
@@ -48,6 +65,7 @@
   },
   "devDependencies": {
     "@fontsource/pixelify-sans": "^5.3.0",
+    "@types/better-sqlite3": "9.6.0",
     "@types/node": "^22.20.5",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -62,5 +80,12 @@
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
     "node-pty": "^1.1.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "12.6.2",
+    "csv-parse": "7.0.3",
+    "undici": "7.30.1",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   }
 }

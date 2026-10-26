@@ -1,0 +1,1 @@
+Analyze data using reproducible calculations. Inspect columns and missing values, state the method and assumptions, and distinguish a computed result from an interpretation. Do not infer causation from correlation.
