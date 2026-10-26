@@ -99,7 +99,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 
 | ID | Trạng thái | Bằng chứng và việc còn lại |
 | --- | --- | --- |
-| P7.01 | Đạt | Model/tool/checkpoint/commit hard-kill matrix and recovery tests; see T11/T13 in the test report. |
+| P7.01 | Đạt | The required model/tool/checkpoint/commit recovery matrix is covered by real process kills. Durable lifecycle audit recovery now covers both before-effect and after-effect boundaries; see T11/T13 in the test report. Broader exploratory fault injection is tracked separately. |
 | P7.02 | Đạt | Duplicate idempotent commands, lost acknowledgments and ambiguous writes are reconciled or quarantined without blind replay. |
 | P7.03 | Đạt | Windows traversal/junction/secret, SSRF and prompt-injection suites; path flavor regression is included in the latest Linux run. |
 | P7.04 | Đạt | Eight-hour isolated SSE/load soak plus slow-client, replay, lease and repeated-worker-failure tests. |
@@ -136,7 +136,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 - Release tests and the reconciled 72-run live-model baseline are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
 
 - Hosted GitHub Actions run #40381194646 on commit adc1750 passed both Linux and Windows jobs. The Windows production browser smoke is green, including the offline regression, workspace preview lifecycle, restart/reconnect and mobile viewport checks. Earlier run #40378764705 had failed at the preview because the Windows browser-smoke fixture omitted `ComSpec` and `PATHEXT`; a clean local Node 22.12 reproduction confirmed the cause, and the fixed harness passed locally before this hosted run. Evidence: `evals/results/office-browser-smoke-node22-2026-10-26T18-47-16-409Z.json` and `evals/results/office-browser-smoke-2026-10-26T18-48-57-068Z.json`. The npm argument de-duplication change is a separate supervisor correctness fix with its own regression test.
-- Latest UAT package r109: 169 manifest-listed files, bundle SHA-256 `b33d60055fe8258268a2efbe20556bf244f54080a4b2212246f45e0d4238026e`; manifest verifies, clean production installs pass on Node 22.12 and Node 24 with zero reported vulnerabilities, offline config validation passes with model unconfigured and execution disabled, and isolated smoke passes health/office HTTP 200, static assets, root redirect, legacy/traversal 404s, schema 15 integrity, no provider calls and port release. The r109-to-r108 rollback smoke preserves a project with no provider calls. The live 4851 process remains on r101.
+- Latest UAT package r111: 169 manifest-listed files, bundle SHA-256 `0f3ff39c54d450b50cba88a135252019aae61dc9b9650bc641f2e5c820a02816`; its release manifest verifies. Manifest verifies, clean production install and audit pass on Node 24 with zero vulnerabilities, offline config validation passes with model unconfigured and execution disabled, and isolated smoke passes health/office HTTP 200, static assets, root redirect, legacy/traversal 404s, schema 15 integrity, no provider calls and port release. The r111-to-r109 rollback smoke preserves a project with no provider calls. The live 4851 process remains on r101.
 
 ## Gate còn lại trước khi gọi v1 hoàn tất
 

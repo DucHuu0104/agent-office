@@ -6,9 +6,9 @@ import { MemoryService } from './memory';
 import { ProjectService } from './projects';
 import { loadRegistry } from './registry';
 
-const [dataDir, runId, projectId, agentInstanceId, markerPath] = process.argv.slice(2);
-if (!dataDir || !runId || !projectId || !agentInstanceId || !markerPath) {
-  throw new Error('Expected data directory, run, project, agent and crash marker identifiers.');
+const [dataDir, runId, projectId, agentInstanceId, markerPath, crashPhase = 'after_event_commit'] = process.argv.slice(2);
+if (!dataDir || !runId || !projectId || !agentInstanceId || !markerPath || !['before_event_commit', 'after_event_commit'].includes(crashPhase)) {
+  throw new Error('Expected data directory, run, project, agent, crash marker and supported crash phase identifiers.');
 }
 
 const db = await DatabaseClient.open(dataDir, true);
@@ -32,9 +32,15 @@ const audited = {
 
 const original = events.transactIdempotent.bind(events);
 events.transactIdempotent = async (...args) => {
-  const result = await original(...args);
   if (args[1] === 'agent.lifecycle_hook') {
-    await writeFile(markerPath, JSON.stringify({ phase: 'event_committed_before_outbox_completion' }));
+    if (crashPhase === 'before_event_commit') {
+      await writeFile(markerPath, JSON.stringify({ phase: crashPhase }));
+      await new Promise<void>(() => undefined);
+    }
+  }
+  const result = await original(...args);
+  if (args[1] === 'agent.lifecycle_hook' && crashPhase === 'after_event_commit') {
+    await writeFile(markerPath, JSON.stringify({ phase: crashPhase }));
     await new Promise<void>(() => undefined);
   }
   return result;
