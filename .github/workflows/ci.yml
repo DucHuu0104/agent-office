@@ -52,7 +52,13 @@ jobs:
           MODEL_PRIMARY_API_KEY: office-ci-primary-secret-sentinel
           MODEL_RESPONSES_API_KEY: office-ci-responses-secret-sentinel
           RESEARCH_BRAVE_API_KEY: office-ci-research-secret-sentinel
-      - run: node scripts/check-client-secrets.mjs
+      - name: Scan browser bundle for secret sentinels
+        run: node scripts/check-client-secrets.mjs
+        env:
+          CLIENT_SECRET_SENTINEL_KEYS: MODEL_PRIMARY_API_KEY,MODEL_RESPONSES_API_KEY,RESEARCH_BRAVE_API_KEY
+          MODEL_PRIMARY_API_KEY: office-ci-primary-secret-sentinel
+          MODEL_RESPONSES_API_KEY: office-ci-responses-secret-sentinel
+          RESEARCH_BRAVE_API_KEY: office-ci-research-secret-sentinel
       - run: npm run office:package -- --output-dir release/agent-office-ci
       - run: npm run office:package -- --verify release/agent-office-ci
       - run: npm --prefix release/agent-office-ci ci --omit=dev

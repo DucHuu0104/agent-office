@@ -2,13 +2,20 @@ import { lstat, readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 const root = resolve(process.argv[2] ?? 'dist/client');
-const secrets = Object.entries(process.env)
-  .filter(([name, value]) => value && /(?:API_KEY|TOKEN|SECRET|PASSWORD)$/i.test(name))
-  .map(([name, value]) => ({ name, value: Buffer.from(value) }));
+const secretNames = [...new Set((process.env.CLIENT_SECRET_SENTINEL_KEYS ?? '')
+  .split(',')
+  .map((name) => name.trim())
+  .filter(Boolean))];
 
-if (secrets.length === 0) {
-  throw new Error('No secret-like environment variables were provided; set test sentinels before scanning the client bundle.');
+if (secretNames.length === 0 || secretNames.some((name) => !/^[A-Z][A-Z0-9_]*$/.test(name))) {
+  throw new Error('Set CLIENT_SECRET_SENTINEL_KEYS to a comma-separated list of test sentinel environment variable names.');
 }
+
+const secrets = secretNames.map((name) => {
+  const value = process.env[name];
+  if (!value) throw new Error(`Secret sentinel environment variable ${name} is missing or empty.`);
+  return { name, value: Buffer.from(value) };
+});
 
 let filesScanned = 0;
 const findings = [];
