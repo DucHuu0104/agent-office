@@ -26,8 +26,8 @@ M1, M2 and M4 have local implementation evidence; that does not imply owner acce
 
 ## Current verification — 26/10/2026
 
-- Linux Node 22.12 Docker runner: clean `npm ci`, `npm run typecheck`, full `npm test` (2,256 passed, 9 skipped across 213 passing files and one skipped file) and `npm run build` passed. The repository source was mounted read-only; this is local CI-equivalent evidence, not a hosted GitHub run.
-- Windows Node 24.17: full repository suite passed (2,239 passed, 26 skipped across 213 passing files and one skipped file). The targeted path/config/Docker invocation regressions passed 15/15.
+- Linux Node 22.12 Docker runner: clean `npm ci`, `npm run typecheck`, full `npm test` (2,257 passed, 9 skipped across 214 passing files and one skipped file) and `npm run build` passed. The repository source was mounted read-only; this is local CI-equivalent evidence, not a hosted GitHub run.
+- Windows Node 24.17: full repository suite passed (2,240 passed, 26 skipped across 214 passing files and one skipped file). The targeted path/config/Docker invocation regressions passed 15/15 and the release-file regression passed 1/1.
 - Agent Office checks: `office:client-test` 17/17, i18n 3,241/3,241 in EN/ES/FR, 40-task corpus validator and config validation passed. Production build scanned 87 browser bundles against three fake API-key sentinels with no matches.
 - Latest production Chromium report is `evals/results/office-browser-smoke-2026-10-26T12-59-25-207Z.json`: ten projects, 30 assigned specialists, 36 rendered characters, three approvals, reconnect/restart, Settings/Activity and 390px layout passed; zero browser errors, 37.71 FPS and 33.4 ms frame p95.
 - Paired live C10 evidence remains in `evals/results/agent-office-c10-runtime-filter-paired-live-20261026.json`: 36,711 measured tokens and $0.002231 estimated list-rate cost under enforced limits. The blank human rubric is not a quality pass.

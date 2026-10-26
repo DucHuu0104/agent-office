@@ -22,6 +22,10 @@ export const RELEASE_SOURCE_PATHS = [
   'visual-evidence/office-r78-settings.png',
 ] as const;
 
+export function isExcludedReleaseFile(path: string): boolean {
+  return path.replace(/\\/g, '/') === 'dist/build.json';
+}
+
 const REQUIRED_RELEASE_FILES = [
   '.env.example',
   'CHANGELOG.md',
@@ -140,6 +144,9 @@ export async function verifyReleasePackage(packageDir: string): Promise<ReleaseM
   }
   await assertRequiredFiles(root);
   const actual = await inventory(root);
+  if (actual.some(({ path }) => isExcludedReleaseFile(path))) {
+    throw new Error('Agent Office release package must not include the inherited Habblaud build stamp.');
+  }
   if (JSON.stringify(actual) !== JSON.stringify(manifest.files)) {
     throw new Error('Release package files do not match the manifest (missing, added, or changed file).');
   }
@@ -149,6 +156,7 @@ export async function verifyReleasePackage(packageDir: string): Promise<ReleaseM
 }
 
 async function copyTreeWithoutSecrets(source: string, destination: string, sourceRoot: string, outputRoot: string): Promise<void> {
+  if (isExcludedReleaseFile(relative(sourceRoot, source))) return;
   const info = await lstat(source);
   if (info.isSymbolicLink()) throw new Error(`Release input may not contain symlinks: ${relative(sourceRoot, source)}.`);
   if (info.isDirectory()) {

@@ -115,7 +115,7 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P8.01 | Đạt | Backup/restore integrity, artifact checksums, registry validation and restored-server smoke pass. |
 | P8.02 | Đạt | Doctor/readiness and explicit live-probe flow documented; Node 22.12 clean-install and no-key production smoke pass. |
 | P8.03 | Đạt | Graceful Ctrl+C/restart, migration backup/rollback and older-package rollback smoke preserve data. |
-| P8.04 | Đạt | UAT release package built from this audit is manifest-verified, clean-installs, audits with zero vulnerabilities and starts without `.env`. |
+| P8.04 | Đạt | UAT release package built from this audit is manifest-verified, clean-installs, audits with zero vulnerabilities, starts without `.env`, and omits the unused inherited Habblaud build stamp. |
 | P8.05 | Đạt | Windows user/package guides cover setup, projects, approvals, artifacts, memory, backup and recovery. |
 | P8.06 | Owner | Windows end-user scenarios and pixel-level visual acceptance are intentionally left for the owner after this implementation handoff. |
 | P8.07 | Chờ P8.06 | Freeze/tag `v1` only after UAT results are resolved; current bundle remains a UAT candidate. |
@@ -123,8 +123,8 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 
 ## Kết quả test hiện tại
 
-- Linux Node 22.12 CI-equivalent: clean `npm ci`, typecheck, full repository suite (2,256 passed, 9 skipped across 213 passing files and one skipped file) and production build passed. This is a local Docker runner, not hosted CI.
-- Windows Node 24.17: full repository suite (2,239 passed, 26 skipped across 213 passing files and one skipped file) passed. Targeted Windows path/config/executor regressions passed 15/15; browser E2E and Agent Office production build passed.
+- Linux Node 22.12 CI-equivalent: clean `npm ci`, typecheck, full repository suite (2,257 passed, 9 skipped across 214 passing files and one skipped file) and production build passed. This is a local Docker runner, not hosted CI.
+- Windows Node 24.17: full repository suite (2,240 passed, 26 skipped across 214 passing files and one skipped file) passed. Targeted Windows path/config/executor regressions passed 15/15 and release-file regression 1/1; browser E2E and Agent Office production build passed.
 - Current browser report: `evals/results/office-browser-smoke-2026-10-26T12-59-25-207Z.json`; 10 projects, 30 project agents, 36 rendered characters, zero browser errors, Settings/Activity, assignment/return, Designer reload, reconnect/restart, approvals and mobile layout passed.
 - Release tests, paired live-model execution and exact limits are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
 
