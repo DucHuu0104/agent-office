@@ -63,6 +63,7 @@ interface PreviewSupervisorMessage {
   signal?: string | null;
   detail?: string;
   output?: string;
+  stoppedBy?: string;
 }
 
 function officeError(message: string, status: number, code: string): Error & { status: number; code: string } {
@@ -269,7 +270,7 @@ export class WorkspacePreviewManager {
     session.supervisor.on('message', (message: PreviewSupervisorMessage) => {
       if (message.type !== 'process_exit' && message.type !== 'process_error') return;
       const status = message.type === 'process_exit'
-        ? `Preview child exited with code ${message.code ?? 'unknown'}${message.signal ? ` (signal ${message.signal})` : ''}.`
+        ? `Preview child exited with code ${message.code ?? 'unknown'}${message.signal ? ` (signal ${message.signal})` : ''}${message.stoppedBy ? `; supervisor stop reason: ${message.stoppedBy}` : ''}.`
         : `Preview child error: ${message.message ?? 'unknown error'}.`;
       capture(`${status}${message.output ? `\n${message.output}` : ''}\n`);
     });

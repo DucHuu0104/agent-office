@@ -6,6 +6,7 @@ const config = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
 let child;
 let stopped = false;
 let stopping;
+let stopReason;
 
 function send(message) {
   if (process.connected) process.send(message);
@@ -38,6 +39,7 @@ async function killTree(target) {
 async function stop(reason) {
   if (stopping) return stopping;
   stopped = true;
+  stopReason = reason;
   stopping = (async () => {
     clearInterval(containerPoll);
     clearTimeout(ttl);
@@ -92,7 +94,7 @@ try {
     child.stderr?.pipe(process.stderr, { end: false });
     child.once('error', (error) => { send({ type: 'process_error', message: error.message, output: childOutput }); void stop('spawn_error'); });
     child.once('close', (code, signal) => {
-      send({ type: 'process_exit', code, signal, output: childOutput });
+      send({ type: 'process_exit', code, signal, output: childOutput, stoppedBy: stopReason });
       if (!stopped) void stop('process_exited');
     });
     await new Promise((resolve, reject) => {
