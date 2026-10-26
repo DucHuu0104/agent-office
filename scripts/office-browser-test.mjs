@@ -146,6 +146,10 @@ const childEnv = {
   ...(process.platform === 'win32' ? {
     SystemRoot: process.env.SystemRoot ?? '',
     WINDIR: process.env.WINDIR ?? '',
+    ComSpec: process.env.ComSpec ?? '',
+    PATHEXT: process.env.PATHEXT ?? '',
+    PROCESSOR_ARCHITECTURE: process.env.PROCESSOR_ARCHITECTURE ?? '',
+    NUMBER_OF_PROCESSORS: process.env.NUMBER_OF_PROCESSORS ?? '',
     TEMP: dataDir,
     TMP: dataDir,
   } : {

@@ -60,6 +60,7 @@ Visible changes in Agent Office are recorded here. The format follows [Keep a Ch
 
 ### Corrigido
 
+- **Windows browser smoke retains system shell variables.** The managed preview can now run npm lifecycle scripts from the smoke test's restricted child environment.
 - **Workspace previews receive only the reviewed script arguments.** npm CLI options and command names no longer leak into the project's preview process.
 - **Offline status stays visible during stale refreshes.** The browser network state now takes precedence over a delayed successful refresh, and online/offline listeners are active during initial startup.
 - **Windows browser smoke reports reconnect state on failure.** A missing offline indicator now includes the browser connectivity event, navigator state and status element class in the CI log.
