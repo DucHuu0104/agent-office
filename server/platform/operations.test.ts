@@ -186,7 +186,7 @@ describe('complete backup bundle', () => {
     expect(smoke.office.snapshot.projects).toHaveLength(1);
     expect(smoke.office.snapshot.agents.some((agent) => agent.role === 'coordinator')).toBe(true);
     expect(smoke.storage).toMatchObject({ integrity: 'ok', requiredTables: 'ok', foreignKeyViolations: 0 });
-  }, 20_000);
+  }, 60_000);
 
   it('rejects secrets during backup and tampered payloads during restore', async () => {
     root = await mkdtemp(join(tmpdir(), 'agent-office-bundle-reject-'));

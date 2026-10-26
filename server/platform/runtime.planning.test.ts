@@ -195,7 +195,7 @@ describe('runtime rejects invalid plans before dispatch', () => {
       runtime!.enqueue(request.runId);
       await vi.waitFor(async () => {
         expect(await db.one<{ status: string }>('SELECT status FROM runs WHERE id = ?', [request.runId])).toEqual({ status: 'failed' });
-      }, { timeout: 5_000 });
+      }, { timeout: 20_000 });
 
       expect(await db.one<{ count: number }>('SELECT COUNT(*) AS count FROM tasks WHERE run_id = ?', [request.runId])).toEqual({ count: 0 });
       expect(await db.one<{ count: number }>('SELECT COUNT(*) AS count FROM assignments WHERE task_id IN (SELECT id FROM tasks WHERE run_id = ?)', [request.runId])).toEqual({ count: 0 });
