@@ -89,7 +89,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P6.01 | Đạt | Coordinator/Developer/Reviewer packages and role/tool contracts are fixture-backed. |
 | P6.02 | Đạt | Docker and local-trusted modes have explicit policy, limits, preview isolation, cancellation and process cleanup; Docker tests passed 12/12. |
 | P6.03 | Đạt | Snapshot/patch/check workflow preserves unrelated dirty files, binds approval to hashes, tests evidence and does not deploy. |
-| P6.04 | Đạt | Researcher/Writer with keyless DuckDuckGo and source provenance; live search and official-page fetch passed. |
+| P6.04 | Đạt | Researcher/Writer with keyless DuckDuckGo and source provenance; live search and official-page fetch passed. Brave live-provider acceptance is not run because `RESEARCH_BRAVE_API_KEY` is absent. |
 | P6.05 | Đạt | CSV summaries are deterministic and checked against independent fixture arithmetic. Runtime now appends a complete verified metrics table to Analyst task output, Markdown/plain-text artifacts and final Coordinator reply; duplicate reports for the same summary and unsupported report MIME formats are rejected. Integration tests deliberately use an incomplete model answer and verify all three outputs. |
 | P6.06 | Đạt | Hooks, memory summaries/revisions, deletion, export/import and retention have restart/idempotency tests. |
 | P6.07 | Đạt | Config-added Designer is previewed, applied without scheduler edits, assigned, drained and returned to pool in browser smoke. |
