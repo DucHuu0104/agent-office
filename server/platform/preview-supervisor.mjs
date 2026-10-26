@@ -94,7 +94,8 @@ try {
     child.stderr?.pipe(process.stderr, { end: false });
     child.once('error', (error) => { send({ type: 'process_error', message: error.message, output: childOutput }); void stop('spawn_error'); });
     child.once('close', (code, signal) => {
-      send({ type: 'process_exit', code, signal, output: childOutput, stoppedBy: stopReason });
+      const npmCliName = config.npmCli.split(/[\\/]/).at(-1) ?? 'unknown';
+      send({ type: 'process_exit', code, signal, output: childOutput, stoppedBy: stopReason, context: `Node ${process.version}; ${npmCliName}; script ${config.script}` });
       if (!stopped) void stop('process_exited');
     });
     await new Promise((resolve, reject) => {
