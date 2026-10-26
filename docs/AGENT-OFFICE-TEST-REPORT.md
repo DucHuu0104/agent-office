@@ -554,3 +554,11 @@ Vietnamese now covers the full 3,256-string shared catalog. `npm run i18n:check`
 ## UAT package r108 (2026-10-26)
 
 Package `release/agent-office-0.1.0-uat-r108-20261026` contains 169 manifest-listed files and verifies at bundle SHA-256 `397e105c0a94de590dadf51cbf471d038c01f7c938c78bded02c8dcb52663086`. Clean production install adds 46 packages; `npm audit --omit=dev` finds zero vulnerabilities. Offline config validation and isolated package smoke pass with no `.env`, model unconfigured, execution disabled, health and `/office` HTTP 200, five static assets, root redirect, legacy/traversal 404s, schema 15 integrity `ok`, zero foreign-key violations, no provider calls and clean port release. The existing 4851 UAT instance remains on r101 and was not replaced.
+
+## Hosted Windows browser smoke follow-up (2026-10-27)
+
+GitHub Actions run #40373063610 ran on commit 1a5fc8d02b4d68c4acddcd8b5cdb3f45437fdf43. Its Linux job succeeded. Windows platform checks completed successfully, then npm run office:browser-test failed at scripts/office-browser-test.mjs:361: after Playwright emitted the browser offline event, the locator #connection-status.is-offline did not become visible within the test 5,000 ms wait. This log does not show a workspace-preview API failure.
+
+The browser now retains offline state when an in-flight refresh succeeds after the browser has gone offline, and installs the network listeners before its first request. The smoke holds an office-refresh response, emits offline, then releases the successful response and confirms the indicator stays offline before reconnecting. The complete local run passed with 10 projects, 10 Coordinators, 30 project agents, 36 rendered agents, 3 reconnects, 49.7 ms reconnect recovery and zero browser errors; report: evals/results/office-browser-smoke-2026-10-26T18-12-29-562Z.json. The serial Windows platform suite passes 328 tests with 7 skipped and typecheck passes.
+
+Three earlier local smoke attempts stopped at the memory-note fixture before reaching reconnect; the latest full run passed that fixture and the complete flow. The hosted Windows run still needs to be rerun against this fix. Owner visual UAT, human baseline scoring and provider invoice reconciliation remain separate release gates.

@@ -1,6 +1,6 @@
 # 12 — Kiểm toán hoàn tất implementation
 
-Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-delivery-backlog.md](07-delivery-backlog.md); P9 được xác định riêng là sau v1. Trạng thái nói về bằng chứng kỹ thuật hiện có, không thay cho nghiệm thu của owner. Ma trận T01–T30 chi tiết nằm trong [báo cáo kiểm thử](../../AGENT-OFFICE-TEST-REPORT.md).
+Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-delivery-backlog.md](07-delivery-backlog.md); P9 được xác định riêng là sau v1. Trạng thái nói về bằng chứng kỹ thuật hiện có, không thay cho nghiệm thu của owner. Ma trận T01–T30 chi tiết nằm trong [báo cáo kiểm thử](../../AGENT-OFFICE-TEST-REPORT.md).
 
 `Đạt` nghĩa là implementation và kiểm tra tương ứng đã có bằng chứng. `Một phần` nghĩa là còn điều kiện đã ghi rõ. `Owner` là thao tác được kế hoạch giao cho người sở hữu sản phẩm.
 
@@ -8,14 +8,14 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 
 | ID | Trạng thái | Bằng chứng và việc còn lại |
 | --- | --- | --- |
-| P0.01 | Một phần | Source nằm trong clone riêng `D:\agent-office`, branch `codex/agent-office-v1`, giữ LICENSE/third-party notices và upstream SHA. Remote Habblaud được đặt tên `upstream` để tránh push nhầm. Chưa có remote sản phẩm do owner quản lý. |
+| P0.01 | Đạt | Source nằm trong clone riêng D:\agent-office, branch codex/agent-office-v1, giữ LICENSE/third-party notices và upstream SHA. Remote Habblaud được đặt tên upstream; remote sản phẩm công khai là origin (DucHuu0104/agent-office). |
 | P0.02 | Đạt | Lockfile pin dependency; clean install và SQLite native được kiểm tra trên Windows/Node 22.12 trước đó và Linux/Node 22.12 trong lần CI emulation hiện tại. |
 | P0.03 | Một phần | Fake/contract tests có cho Responses và Chat Completions; Agnes Chat Completions text/tool chạy live. Agnes không công bố Responses endpoint; live multi-turn Responses trả HTTP 400 nên profile này để chưa cấu hình. |
 | P0.04 | Đạt | Canonical schemas, IDs, events, fixtures và quyết định kiến trúc nằm trong `shared/platform/` và các tài liệu 02–06/09. |
 | P0.05 | Đạt | Scripts build/test/config validation chạy trên PowerShell và Linux Node 22.12. |
 | P0.06 | Đạt | Threat model và policy ghi trong tài liệu 11; Docker executor thật đã qua 12/12 ca với network/resource/mount/cancel/cleanup kiểm chứng. |
 | P0.07 | Đạt | Entry point mới chạy runtime độc lập; smoke xác nhận không cần watcher/uplink/installer Habblaud cũ. |
-| P0.08 | Một phần | Local Windows và Linux CI-equivalent đều đã chạy; hosted GitHub check chưa có vì chưa có remote sản phẩm. |
+| P0.08 | Một phần | Hosted GitHub run #40373063610: Linux thành công; Windows platform checks thành công nhưng Chromium smoke chưa qua bước offline-indicator. Nhánh hiện tại đã thêm browser-online guard và regression test giữ phản hồi refresh thành công qua lúc offline; local full Chromium smoke và test platform đều qua. Cần chạy lại hosted Windows CI. |
 
 ## P1 — Domain và lưu trữ
 
@@ -106,7 +106,7 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P7.05 | Đạt | Hard token/USD limits, unknown/unpriced usage and retries are covered; provider list-rate estimates are not an invoice. |
 | P7.06 | Một phần | The 12-task live baseline completed 72/72 runs and 36/36 paired comparisons (298 canonical requests, 680,492 tokens, estimated $0.043602; report `evals/results/agent-office-v1-baseline-live-20261026.json`). A duplicate recovery attempt is disclosed separately. The report-bound human scoring sheet is blank, so quality comparison is not signed off. |
 | P7.07 | Đạt | Lifecycle content minimization, retention and memory tombstone/revision regressions. |
-| P7.08 | Một phần | Candidate has no known blocking defect in current automated suite; formal sign-off waits on P7.06 review, hosted CI evidence and owner UAT. |
+| P7.08 | Một phần | Formal sign-off waits on P7.06 human review, owner UAT, and a green hosted Windows browser smoke. Run #40373063610 failed when the offline indicator did not appear within five seconds; the current local fix passes the deterministic stale-refresh regression and full Chromium smoke, pending hosted rerun. |
 
 ## P8 — Vận hành và bàn giao
 
@@ -135,13 +135,14 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 - Visual continuity from Habblaud remains a P8.06 owner acceptance gate: sidebar, animated assignment movement, safe activity bubbles, persisted visual settings, and bottom Activity ticker/feed/toast are automated-smoke-covered; pixel-level owner UAT has not been signed off.
 - Release tests and the reconciled 72-run live-model baseline are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
 
+- Hosted GitHub Actions run #40373063610 on commit 1a5fc8d02b4d68c4acddcd8b5cdb3f45437fdf43: Linux passed; Windows reached the browser smoke after its platform checks and failed at scripts/office-browser-test.mjs:361, waiting for #connection-status.is-offline after Playwright emitted offline. The current branch fix passes the full local Chromium smoke, including a delayed-refresh offline regression, and the serial platform suite (328 passed, 7 skipped); hosted rerun is pending.
 - Latest UAT package r108: 169 manifest-listed files, bundle SHA-256 `397e105c0a94de590dadf51cbf471d038c01f7c938c78bded02c8dcb52663086`; manifest verifies, clean install has 46 production packages, audit reports zero vulnerabilities, offline config validation passes with no model credentials and disabled execution, and isolated smoke passes health/office HTTP 200, schema 15 integrity, no provider calls and port release. The live 4851 process remains on r101.
 
 ## Gate còn lại trước khi gọi v1 hoàn tất
 
 1. Owner chạy checklist Windows UAT và xác nhận pixel-level UI cùng các workflow end-to-end.
 2. Chấm score sheet của live C10 pair và review sheet 72 lượt baseline theo rubric; chỉ kết luận chất lượng so sánh sau đó.
-3. Push the reviewed implementation to the new public Agent Office repository and resolve its hosted Windows CI results; `upstream` remains the Habblaud source.
+3. The baseline is in the public Agent Office repository. Push the validated local fix, then rerun hosted Windows CI; upstream remains the Habblaud source.
 4. Sau khi các gate trên đạt, tạo tag/release v1 và hoàn tất handover P8.08. Đối soát hóa đơn provider cần dữ liệu tài khoản của owner; file báo cáo hiện chỉ có usage và ước tính giá niêm yết.
 
 P9 trong backlog là sau v1 và không thuộc phạm vi release local-first này.

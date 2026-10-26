@@ -63,6 +63,7 @@ let bannerTimer: number | null = null;
 let streamText = '';
 let streamRunId = '';
 let connection: EventSource | null = null;
+let browserOnline = navigator.onLine;
 let eventReconnectAttempt = 0;
 let eventReconnectTimer: number | null = null;
 let canvasStore: CanvasStore;
@@ -106,11 +107,12 @@ async function start(): Promise<void> {
   root.querySelector<HTMLFormElement>('#new-project-form')!.onsubmit = createProject;
   root.querySelector<HTMLButtonElement>('#cancel-project-dialog')!.onclick = () => root.querySelector<HTMLDialogElement>('#new-project-dialog')!.close();
   try {
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    if (!browserOnline) updateConnection(false);
     const session = await fetchJson<{ csrfToken: string }>('/platform/v1/session');
     csrfToken = session.csrfToken;
     await refresh();
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
     connectEvents();
     window.setInterval(refreshInBackground, 5000);
   } catch (error) {
@@ -1166,16 +1168,21 @@ function connectEvents(): void {
 }
 
 function handleOnline(): void {
+  browserOnline = true;
   eventReconnectAttempt = 0;
   if (eventReconnectTimer !== null) {
     window.clearTimeout(eventReconnectTimer);
     eventReconnectTimer = null;
   }
-  if (connection && connection.readyState === EventSource.OPEN) return;
+  if (connection && connection.readyState === EventSource.OPEN) {
+    updateConnection(true);
+    return;
+  }
   connectEvents();
 }
 
 function handleOffline(): void {
+  browserOnline = false;
   updateConnection(false);
   if (eventReconnectTimer !== null) {
     window.clearTimeout(eventReconnectTimer);
@@ -1221,6 +1228,7 @@ async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
 function updateConnection(connected: boolean): void {
   const status = root.querySelector<HTMLElement>('#connection-status');
   if (!status) return;
+  connected = connected && browserOnline;
   status.classList.toggle('is-offline', !connected);
   status.innerHTML = `<i></i>${connected ? tr('Conectado') : tr('Conectando ao escritório…')}`;
 }

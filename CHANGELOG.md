@@ -60,6 +60,8 @@ Visible changes in Agent Office are recorded here. The format follows [Keep a Ch
 
 ### Corrigido
 
+- **Offline status stays visible during stale refreshes.** The browser network state now takes precedence over a delayed successful refresh, and online/offline listeners are active during initial startup.
+- **Windows browser smoke reports reconnect state on failure.** A missing offline indicator now includes the browser connectivity event, navigator state and status element class in the CI log.
 - **Delivery attachments recognize Windows account roots on Linux.** The root check now joins `projects` paths with the matching path flavor, so Windows-style account directories are checked consistently across host platforms.
 - **Node 22.12 development and test workers load TypeScript reliably.** The database worker now registers tsx inside its worker thread; packaged production continues to use the compiled JavaScript worker.
 - **Archiving a selected room keeps another active room open.** Overlapping project-list refresh events no longer cancel the archive action's selection fallback and leave the project panel empty.

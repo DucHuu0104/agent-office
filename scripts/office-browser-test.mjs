@@ -230,6 +230,48 @@ try {
   await page.locator('#connection-status:not(.is-offline)').waitFor({ timeout: 10_000 });
   await page.locator('#project-content .empty-state').waitFor();
 
+  let holdNextOfficeRefresh = false;
+  let captureOfficeRefresh = () => {};
+  let releaseHeldOfficeRefresh = () => {};
+  let finishHeldOfficeRefresh = () => {};
+  const officeRefreshCaptured = new Promise((resolve) => { captureOfficeRefresh = resolve; });
+  const heldOfficeRefreshGate = new Promise((resolve) => { releaseHeldOfficeRefresh = resolve; });
+  const heldOfficeRefreshFinished = new Promise((resolve) => { finishHeldOfficeRefresh = resolve; });
+  await page.route('**/platform/v1/office', async (route) => {
+    if (!holdNextOfficeRefresh) return route.continue();
+    holdNextOfficeRefresh = false;
+    const response = await route.fetch();
+    const body = await response.body();
+    captureOfficeRefresh();
+    await heldOfficeRefreshGate;
+    await route.fulfill({ response, body });
+    finishHeldOfficeRefresh();
+  });
+  const projectRefreshResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/platform/v1/projects' && response.request().method() === 'GET';
+  }, { timeout: 10_000 });
+  holdNextOfficeRefresh = true;
+  await officeRefreshCaptured;
+  await projectRefreshResponse;
+  const networkBeforeOfflineRefresh = await page.evaluate(() => ({ ...window.__officeNetworkEvents }));
+  intentionalOffline = true;
+  await page.context().setOffline(true);
+  await page.waitForFunction((previous) => window.__officeNetworkEvents.offline > previous.offline, networkBeforeOfflineRefresh, { timeout: 5_000 });
+  await page.locator('#connection-status.is-offline').waitFor({ timeout: 5_000 });
+  releaseHeldOfficeRefresh();
+  await heldOfficeRefreshFinished;
+  await page.waitForTimeout(50);
+  const offlineClass = await page.locator('#connection-status').getAttribute('class');
+  if (!offlineClass?.split(/\s+/).includes('is-offline')) {
+    throw new Error('A delayed successful refresh incorrectly cleared the offline indicator.');
+  }
+  await page.context().setOffline(false);
+  await page.waitForFunction((previous) => window.__officeNetworkEvents.online > previous.online, networkBeforeOfflineRefresh, { timeout: 5_000 });
+  await page.locator('#connection-status:not(.is-offline)').waitFor({ timeout: 10_000 });
+  intentionalOffline = false;
+  console.log('Verified that a delayed refresh cannot clear the offline indicator and that the live UI reconnects.');
+
   await page.locator('.world-toolbar').waitFor();
   if (!await page.locator('#world-stats').getByText('agents', { exact: false }).count()) throw new Error('The world toolbar did not show live office counters.');
   await page.locator('#world-settings-toggle').click();
@@ -358,7 +400,16 @@ try {
   intentionalOffline = true;
   await page.context().setOffline(true);
   await page.waitForFunction((previous) => window.__officeNetworkEvents.offline > previous.offline, networkEventsBefore, { timeout: 5_000 });
-  await page.locator('#connection-status.is-offline').waitFor({ timeout: 5_000 });
+  try {
+    await page.locator('#connection-status.is-offline').waitFor({ timeout: 5_000 });
+  } catch {
+    const offlineDebug = await page.evaluate(() => ({
+      online: navigator.onLine,
+      status: document.querySelector('#connection-status')?.className,
+      offlineEvents: window.__officeNetworkEvents.offline,
+    }));
+    throw new Error('The office did not show its offline status after the browser emitted offline: ' + JSON.stringify(offlineDebug) + '.');
+  }
   const reconnectSessionResponse = await fetch(`http://127.0.0.1:${port}/platform/v1/session`);
   if (!reconnectSessionResponse.ok) throw new Error('Could not create a local API session during the browser disconnect.');
   const reconnectCookie = reconnectSessionResponse.headers.get('set-cookie')?.split(';', 1)[0];

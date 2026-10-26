@@ -1,6 +1,6 @@
 # 10 — Implementation status
 
-Snapshot: 26/10/2026. This is a working status report, not an acceptance claim. A milestone is complete only when its backlog criteria have evidence.
+Snapshot: 27/10/2026. This is a working status report, not an acceptance claim. A milestone is complete only when its backlog criteria have evidence.
 
 ## Product checkout and local run
 
@@ -16,16 +16,24 @@ Snapshot: 26/10/2026. This is a working status report, not an acceptance claim. 
 
 | Milestone | State | Evidence and remaining work |
 | --- | --- | --- |
-| M0 — platform foundation | Partial | Local project clone, locked dependencies, Windows/Linux Node 22.12 checks, SQLite worker, configuration and threat model are in place. Hosted CI and a product-owned remote remain. Agnes Chat Completions is the supported live profile; its Responses multi-turn compatibility remains unaccepted. |
+| M0 — platform foundation | Partial | The product-owned public remote exists, and hosted CI ran on Linux and Windows. Linux and Windows platform checks pass; the hosted Windows Chromium smoke still fails while waiting for the offline connection indicator. Agnes Chat Completions is the supported live profile; its Responses multi-turn compatibility remains unaccepted. |
 | M1 — persistent projects and roster | Complete locally | Atomic project/Coordinator creation, stable roster pool, archive/restore, persistent chat, validated attachments, SSE recovery, Vietnamese/English selection and product smoke are covered by tests and ten-project Chromium smoke. |
 | M2 — one specialist can work | Complete locally | Live Chat Completions text/tool, approvals, artifacts, checkpoints and recovery are verified; deterministic Responses runtime integration passes. Provider-specific Responses continuation remains disabled for Agnes. |
 | M3 — coordinated team and office | Partial | DAG scheduling, assignments, dependencies, Reviewer loop, steering, movement, settings and Activity pass automated/browser checks. The owner still needs to accept the visual result and UAT flows. |
 | M4 — generalist beta | Complete technically | Coding, research, CSV, skills, hooks, scoped memory and config-added Designer are implemented and covered by deterministic and live execution evidence. Human answer-quality scoring remains separate. |
-| M5 — personal v1 | Not complete | UAT package and handover docs are ready. Owner UAT, live-eval review, hosted CI and post-UAT release tagging remain. |
+| M5 — personal v1 | Not complete | UAT package and handover docs are ready. Owner UAT, live-eval review, the hosted Windows browser smoke, and post-UAT release tagging remain. |
 
 M1, M2 and M4 have local implementation evidence; that does not imply owner acceptance or a hosted release. The item-level audit is in [12-completion-audit.md](12-completion-audit.md).
 
-## Current verification — 26/10/2026
+## Latest hosted verification — 27/10/2026
+
+- GitHub Actions run #40373063610 (commit 1a5fc8d02b4d68c4acddcd8b5cdb3f45437fdf43): the Linux job passed. The Windows platform checks passed through the browser smoke step; that final Chromium smoke failed at scripts/office-browser-test.mjs:361 because #connection-status.is-offline did not become visible within 5 seconds after Playwright emitted the browser offline event.
+- The current branch records whether the browser is online and prevents an in-flight refresh from clearing offline status; network listeners are installed before the initial fetch. Typecheck passes, and the serial Windows platform suite passes 328 tests with 7 skipped.
+- The latest full local Chromium report is evals/results/office-browser-smoke-2026-10-26T18-12-29-562Z.json: 10 projects, 10 Coordinators, 30 project agents, 36 rendered agents, 3 reconnects, 49.7 ms reconnect recovery, and zero browser errors. It includes a deterministic held-response check proving that a delayed successful refresh cannot clear the offline indicator.
+- Three earlier local smoke attempts stopped at the memory-note fixture before reaching reconnect; the latest complete smoke passed that stage and the remainder of the flow. The hosted Windows run still needs to be rerun against this fix.
+- Remaining independent release gates are owner UAT, human scoring of the live baseline/review sheets, provider invoice reconciliation by the owner, and a release tag after acceptance.
+
+## Previous broad verification — 26/10/2026
 
 - Linux Node 22.12 Docker runner: clean `npm ci`, `npm run typecheck`, full `npm test` (2,257 passed, 9 skipped across 214 passing files and one skipped file) and `npm run build` passed. The repository source was mounted read-only; this is local CI-equivalent evidence, not a hosted GitHub run.
 - Windows Node 24.17: full repository suite passed (2,240 passed, 26 skipped across 214 passing files and one skipped file). The targeted path/config/Docker invocation regressions passed 15/15 and the release-file regression passed 1/1.
@@ -36,7 +44,7 @@ M1, M2 and M4 have local implementation evidence; that does not imply owner acce
 - Production bundle live-model probe: `doctor --live` returned text successfully (310 tokens), and `doctor --live --tools` returned the expected `ping` function call (611 tokens); 921 tokens total, using the isolated r101 database with execution disabled.
 - Real Docker executor regression on this Windows host: 12/12 passed. The synthetic workspace baseline ran in an isolated, offline snapshot and produced exactly two expected failing assertions; no workspace write was applied.
 - The latest handoff package built from this audit passed clean production install, zero-vulnerability audit, manifest verification and isolated offline smoke on Windows and Linux Node 22.12.
-## Verification history (current evidence is summarized above)
+## Previous verification history through 26/10/2026
 
 - `npm run typecheck`: passed after the latest platform changes.
 - `npm run config:validate`: passed; 6 definitions, 5 specialists, 12 tools, and 3 model profiles loaded.
