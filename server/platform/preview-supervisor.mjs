@@ -78,7 +78,7 @@ try {
   } else {
     let childOutput = '';
     const captureChildOutput = (chunk) => { childOutput = `${childOutput}${chunk.toString('utf8')}`.slice(-8000); };
-    child = spawn(process.execPath, [config.npmCli, '--loglevel=error', 'run', config.script, ...config.npmArgs], {
+    child = spawn(process.execPath, [config.npmCli, '--loglevel=verbose', 'run', config.script, ...config.npmArgs], {
       cwd: config.cwd,
       env: { ...process.env, ...config.previewEnv },
       windowsHide: true,

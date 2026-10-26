@@ -218,7 +218,10 @@ export class WorkspacePreviewManager {
     this.sessions.delete(id);
     session.stopping = true;
     await stopSupervisor(session.supervisor);
-    await new Promise<void>((resolvePromise) => session.proxyServer.close(() => resolvePromise()));
+    await new Promise<void>((resolvePromise) => {
+      session.proxyServer.close(() => resolvePromise());
+      session.proxyServer.closeAllConnections();
+    });
     await session.snapshot.cleanup();
     return true;
   }
