@@ -59,8 +59,8 @@ jobs:
           MODEL_PRIMARY_API_KEY: office-ci-primary-secret-sentinel
           MODEL_RESPONSES_API_KEY: office-ci-responses-secret-sentinel
           RESEARCH_BRAVE_API_KEY: office-ci-research-secret-sentinel
-      - run: npm run office:package -- --output-dir release/agent-office-ci
-      - run: npm run office:package -- --verify release/agent-office-ci
+      - run: node --import tsx scripts/package-platform.ts --output-dir release/agent-office-ci
+      - run: node --import tsx scripts/package-platform.ts --verify release/agent-office-ci
       - run: npm --prefix release/agent-office-ci ci --omit=dev
       - run: npm --prefix release/agent-office-ci audit --omit=dev
       - run: npm --prefix release/agent-office-ci run config:validate
