@@ -33,7 +33,7 @@ describe('registry hot reload preview', () => {
     try {
       await Promise.all(['agents', 'config', 'skills'].map((name) => cp(join(process.cwd(), name), join(temp, name), { recursive: true })));
       const modelPath = join(temp, 'config', 'models.yaml');
-      const source = await readFile(modelPath, 'utf8');
+      const source = (await readFile(modelPath, 'utf8')).replace(/\r\n/g, '\n');
       const withoutPricing = source.replace(/\n    pricing:\n      version: [^\n]*\n      modelName: [^\n]*\n      inputUsdPerMillionTokens: [^\n]*\n      outputUsdPerMillionTokens: [^\n]*/g, '');
       await writeFile(modelPath, withoutPricing.replace(
         'capabilityRequirements: [tool-calling, streaming]',
@@ -56,7 +56,7 @@ describe('registry hot reload preview', () => {
     try {
       await Promise.all(['agents', 'config', 'skills'].map((name) => cp(join(process.cwd(), name), join(temp, name), { recursive: true })));
       const modelPath = join(temp, 'config', 'models.yaml');
-      const source = await readFile(modelPath, 'utf8');
+      const source = (await readFile(modelPath, 'utf8')).replace(/\r\n/g, '\n');
       const withoutPricing = source.replace(/\n    pricing:\n      version: [^\n]*\n      modelName: [^\n]*\n      inputUsdPerMillionTokens: [^\n]*\n      outputUsdPerMillionTokens: [^\n]*/g, '');
       await writeFile(modelPath, withoutPricing.replace(
         'capabilityRequirements: [tool-calling, streaming]',

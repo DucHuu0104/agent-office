@@ -33,7 +33,7 @@ describe('Responses API runtime integration', () => {
     for (const entry of ['agents', 'config', 'skills']) await cp(join(process.cwd(), entry), join(configDir, entry), { recursive: true });
     for (const agentId of ['coordinator', 'writer']) {
       const manifestPath = join(configDir, 'agents', 'definitions', agentId, 'agent.yaml');
-      const manifest = await readFile(manifestPath, 'utf8');
+      const manifest = (await readFile(manifestPath, 'utf8')).replace(/\r\n/g, '\n');
       await writeFile(manifestPath, manifest.replace('modelProfile: primary\n', 'modelProfile: primary-responses\n'), 'utf8');
     }
 

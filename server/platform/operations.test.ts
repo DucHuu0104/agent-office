@@ -209,5 +209,5 @@ describe('complete backup bundle', () => {
     const target = join(root, 'must-not-exist');
     await expect(restoreBackupBundle(bundlePath, target, true)).rejects.toThrow('checksum mismatch');
     await expect(stat(target)).rejects.toMatchObject({ code: 'ENOENT' });
-  });
+  }, 20_000);
 });

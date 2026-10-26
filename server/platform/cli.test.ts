@@ -134,7 +134,8 @@ describe('office doctor', () => {
     const configDir = join(root, 'configuration');
     for (const section of ['agents', 'skills', 'config']) await cp(join(process.cwd(), section), join(configDir, section), { recursive: true });
     const coordinatorPath = join(configDir, 'agents', 'definitions', 'coordinator', 'agent.yaml');
-    await writeFile(coordinatorPath, (await readFile(coordinatorPath, 'utf8')).replace('modelProfile: primary\n', 'modelProfile: primary-responses\n'));
+    const coordinator = (await readFile(coordinatorPath, 'utf8')).replace(/\r\n/g, '\n');
+    await writeFile(coordinatorPath, coordinator.replace('modelProfile: primary\n', 'modelProfile: primary-responses\n'));
     const dataDir = join(root, 'data');
     await initializeDatabase(dataDir);
 
