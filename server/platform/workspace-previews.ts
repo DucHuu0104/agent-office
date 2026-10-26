@@ -60,6 +60,7 @@ interface PreviewSupervisorMessage {
   type?: string;
   message?: string;
   code?: number | null;
+  signal?: string | null;
   detail?: string;
   output?: string;
 }
@@ -264,7 +265,9 @@ export class WorkspacePreviewManager {
     session.supervisor.stderr?.on('data', capture);
     session.supervisor.on('message', (message: PreviewSupervisorMessage) => {
       if (message.type !== 'process_exit' && message.type !== 'process_error') return;
-      const status = message.type === 'process_exit' ? `Preview child exited with code ${message.code ?? 'unknown'}.` : `Preview child error: ${message.message ?? 'unknown error'}.`;
+      const status = message.type === 'process_exit'
+        ? `Preview child exited with code ${message.code ?? 'unknown'}${message.signal ? ` (signal ${message.signal})` : ''}.`
+        : `Preview child error: ${message.message ?? 'unknown error'}.`;
       capture(`${status}${message.output ? `\n${message.output}` : ''}\n`);
     });
     session.supervisor.once('exit', () => {
