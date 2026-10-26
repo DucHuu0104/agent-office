@@ -15,7 +15,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P0.05 | Đạt | Scripts build/test/config validation chạy trên PowerShell và Linux Node 22.12. |
 | P0.06 | Đạt | Threat model và policy ghi trong tài liệu 11; Docker executor thật đã qua 12/12 ca với network/resource/mount/cancel/cleanup kiểm chứng. |
 | P0.07 | Đạt | Entry point mới chạy runtime độc lập; smoke xác nhận không cần watcher/uplink/installer Habblaud cũ. |
-| P0.08 | Đạt | Hosted GitHub Actions run #40381194646 on commit adc1750 passed both Linux and Windows jobs. Windows typecheck, platform/client tests, configuration, i18n, secret scan, release package smoke and full production Chromium browser smoke passed, including the managed workspace preview. |
+| P0.08 | Đạt | Hosted GitHub Actions run #40381194646 passed the baseline; draft PR run #40385704131 on code/test commit 1950a8b and documentation-only follow-up #40386635655 on commit 194397c both passed Linux and Windows jobs. Linux full repository tests passed; Windows typecheck, Agent Office/client tests, configuration, i18n, secret scan, release package smoke and full production Chromium browser smoke passed. |
 
 ## P1 — Domain và lưu trữ
 
@@ -89,7 +89,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P6.01 | Đạt | Coordinator/Developer/Reviewer packages and role/tool contracts are fixture-backed. |
 | P6.02 | Đạt | Docker and local-trusted modes have explicit policy, limits, preview isolation, cancellation and process cleanup; Docker tests passed 12/12. |
 | P6.03 | Đạt | Snapshot/patch/check workflow preserves unrelated dirty files, binds approval to hashes, tests evidence and does not deploy. |
-| P6.04 | Đạt | Researcher/Writer with keyless DuckDuckGo and source provenance; live search and official-page fetch passed. |
+| P6.04 | Đạt | Researcher/Writer with keyless DuckDuckGo and source provenance; live search and official-page fetch passed. Brave live-provider acceptance is not run because `RESEARCH_BRAVE_API_KEY` is absent. |
 | P6.05 | Đạt | CSV summaries are deterministic and checked against independent fixture arithmetic. Runtime now appends a complete verified metrics table to Analyst task output, Markdown/plain-text artifacts and final Coordinator reply; duplicate reports for the same summary and unsupported report MIME formats are rejected. Integration tests deliberately use an incomplete model answer and verify all three outputs. |
 | P6.06 | Đạt | Hooks, memory summaries/revisions, deletion, export/import and retention have restart/idempotency tests. |
 | P6.07 | Đạt | Config-added Designer is previewed, applied without scheduler edits, assigned, drained and returned to pool in browser smoke. |
@@ -99,14 +99,14 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 
 | ID | Trạng thái | Bằng chứng và việc còn lại |
 | --- | --- | --- |
-| P7.01 | Đạt | Model/tool/checkpoint/commit hard-kill matrix and recovery tests; see T11/T13 in the test report. |
+| P7.01 | Đạt | The required model/tool/checkpoint/commit recovery matrix is covered by real process kills. Durable lifecycle audit recovery now covers both before-effect and after-effect boundaries; see T11/T13 in the test report. Broader exploratory fault injection is tracked separately. |
 | P7.02 | Đạt | Duplicate idempotent commands, lost acknowledgments and ambiguous writes are reconciled or quarantined without blind replay. |
 | P7.03 | Đạt | Windows traversal/junction/secret, SSRF and prompt-injection suites; path flavor regression is included in the latest Linux run. |
 | P7.04 | Đạt | Eight-hour isolated SSE/load soak plus slow-client, replay, lease and repeated-worker-failure tests. |
 | P7.05 | Đạt | Hard token/USD limits, unknown/unpriced usage and retries are covered; provider list-rate estimates are not an invoice. |
 | P7.06 | Một phần | The 12-task live baseline completed 72/72 runs and 36/36 paired comparisons (298 canonical requests, 680,492 tokens, estimated $0.043602; report `evals/results/agent-office-v1-baseline-live-20261026.json`). A duplicate recovery attempt is disclosed separately. The report-bound human scoring sheet is blank, so quality comparison is not signed off. |
 | P7.07 | Đạt | Lifecycle content minimization, retention and memory tombstone/revision regressions. |
-| P7.08 | Một phần | Formal sign-off still waits on P7.06 human review and owner UAT. Hosted Windows browser smoke is green in run #40381194646, including the managed preview on Node 22.12; release tagging follows owner acceptance. |
+| P7.08 | Một phần | Formal sign-off still waits on P7.06 human review and owner UAT. Hosted Windows browser smoke is green in runs #40381194646 and #40385704131, including the managed preview; documentation-only follow-up #40386635655 also passed; release tagging follows owner acceptance. |
 
 ## P8 — Vận hành và bàn giao
 
@@ -135,8 +135,8 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 - Visual continuity from Habblaud remains a P8.06 owner acceptance gate: sidebar, animated assignment movement, safe activity bubbles, persisted visual settings, and bottom Activity ticker/feed/toast are automated-smoke-covered; pixel-level owner UAT has not been signed off.
 - Release tests and the reconciled 72-run live-model baseline are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
 
-- Hosted GitHub Actions run #40381194646 on commit adc1750 passed both Linux and Windows jobs. The Windows production browser smoke is green, including the offline regression, workspace preview lifecycle, restart/reconnect and mobile viewport checks. Earlier run #40378764705 had failed at the preview because the Windows browser-smoke fixture omitted `ComSpec` and `PATHEXT`; a clean local Node 22.12 reproduction confirmed the cause, and the fixed harness passed locally before this hosted run. Evidence: `evals/results/office-browser-smoke-node22-2026-10-26T18-47-16-409Z.json` and `evals/results/office-browser-smoke-2026-10-26T18-48-57-068Z.json`. The npm argument de-duplication change is a separate supervisor correctness fix with its own regression test.
-- Latest UAT package r108: 169 manifest-listed files, bundle SHA-256 `397e105c0a94de590dadf51cbf471d038c01f7c938c78bded02c8dcb52663086`; manifest verifies, clean install has 46 production packages, audit reports zero vulnerabilities, offline config validation passes with no model credentials and disabled execution, and isolated smoke passes health/office HTTP 200, schema 15 integrity, no provider calls and port release. The live 4851 process remains on r101.
+- Hosted GitHub Actions run #40381194646 on commit adc1750 passed both Linux and Windows jobs. The Windows production browser smoke is green, including the offline regression, workspace preview lifecycle, restart/reconnect and mobile viewport checks. Earlier run #40378764705 had failed at the preview because the Windows browser-smoke fixture omitted `ComSpec` and `PATHEXT`; a clean local Node 22.12 reproduction confirmed the cause, and the fixed harness passed locally before this hosted run. Evidence: `evals/results/office-browser-smoke-node22-2026-10-26T18-47-16-409Z.json` and `evals/results/office-browser-smoke-2026-10-26T18-48-57-068Z.json`. The npm argument de-duplication change is a separate supervisor correctness fix with its own regression test. Draft PR run #40385704131 on code/test commit 1950a8b and documentation-only follow-up #40386635655 on 194397c both passed Linux and Windows; Linux full repository tests and Windows full Agent Office/package/production Chromium checks passed.
+- Latest UAT package r113: 169 manifest-listed files, bundle SHA-256 `bundle SHA-256 `9b7ea1773ba04a2dc7ccb91b0f8de27328ab7f78be123ff11e05c148b86ceaee``; its release manifest verifies. Manifest verifies, clean production install and audit pass on Node 24 with zero vulnerabilities, offline config validation passes with model unconfigured and execution disabled, and isolated smoke passes health/office HTTP 200, static assets, root redirect, legacy/traversal 404s, schema 15 integrity, no provider calls and port release. The r113-to-r112 rollback smoke preserves a project with no provider calls. The live 4851 process remains on r101.
 
 ## Gate còn lại trước khi gọi v1 hoàn tất
 

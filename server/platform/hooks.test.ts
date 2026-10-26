@@ -236,6 +236,61 @@ describe('agent lifecycle hooks', () => {
     expect(JSON.stringify(await db.all('SELECT payload_json FROM hook_outbox'))).not.toContain('supersecretcredential');
   });
 
+  it('abandons a durable lifecycle hook after five failed commits and erases its payload', async () => {
+    const project = await projects.createProject({ name: 'Hook retry limit', goal: '' });
+    const run = await projects.createUserMessage(project.id, project.conversationId, 'Exercise the durable hook retry limit.');
+    const coordinator = registry.definitions.get('coordinator')!;
+    const failClosed = {
+      ...coordinator,
+      hooks: { ...coordinator.hooks, hooks: { ...coordinator.hooks.hooks, before_run: [{ handler: 'lifecycle.audit' as const, timeoutMs: 1000, onError: 'fail' as const }] } },
+    };
+    const context = {
+      eventId: 'retry-limit-lifecycle-event', executionId: run.runId, runId: run.runId, projectId: project.id,
+      agentInstanceId: project.coordinatorInstanceId, data: { requestSequence: 1, prompt: 'never persist this retry payload' },
+    };
+    const revisionBefore = await db.one<{ revision: number }>("SELECT revision FROM workspaces WHERE id = 'local-workspace'");
+    const commitEvent = vi.spyOn(events, 'transactIdempotent').mockRejectedValue(new Error('simulated database failure before commit'));
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await expect(hooks.dispatch(failClosed, 'before_run', context)).rejects.toMatchObject({ code: 'HOOK_FAILED' });
+    }
+
+    expect(commitEvent).toHaveBeenCalledTimes(5);
+    expect(await db.one<{ status: string; payload_json: string | null; attempts: number; last_error_code: string | null }>(
+      "SELECT status, payload_json, attempts, last_error_code FROM hook_outbox WHERE event_id = 'retry-limit-lifecycle-event'",
+    )).toMatchObject({ status: 'abandoned', payload_json: null, attempts: 5, last_error_code: 'HOOK_FAILED' });
+    expect(await db.one<{ count: number }>("SELECT COUNT(*) AS count FROM domain_events WHERE type = 'agent.lifecycle_hook'")).toEqual({ count: 0 });
+    expect(await db.one<{ revision: number }>("SELECT revision FROM workspaces WHERE id = 'local-workspace'")).toEqual(revisionBefore);
+    expect(JSON.stringify(await db.all('SELECT payload_json FROM hook_outbox'))).not.toContain('never persist this retry payload');
+    await expect(hooks.dispatch(failClosed, 'before_run', context)).rejects.toMatchObject({ code: 'HOOK_DELIVERY_ABANDONED' });
+    expect(commitEvent).toHaveBeenCalledTimes(5);
+  });
+
+  it('rejects reuse of a completed lifecycle event ID with different metadata', async () => {
+    const project = await projects.createProject({ name: 'Hook idempotency conflict', goal: '' });
+    const run = await projects.createUserMessage(project.id, project.conversationId, 'Reject event ID reuse.');
+    const coordinator = registry.definitions.get('coordinator')!;
+    const failClosed = {
+      ...coordinator,
+      hooks: { ...coordinator.hooks, hooks: { ...coordinator.hooks.hooks, before_run: [{ handler: 'lifecycle.audit' as const, timeoutMs: 1000, onError: 'fail' as const }] } },
+    };
+    const context = {
+      eventId: 'stable-lifecycle-event-id', executionId: run.runId, runId: run.runId, projectId: project.id,
+      agentInstanceId: project.coordinatorInstanceId, data: { requestSequence: 1 },
+    };
+    const first = await hooks.dispatch(failClosed, 'before_run', context);
+    const revisionAfterCommit = await db.one<{ revision: number }>("SELECT revision FROM workspaces WHERE id = 'local-workspace'");
+    const conflicted = { ...context, data: { requestSequence: 2 } };
+
+    expect(first[0]?.result).toEqual({ recorded: true });
+    await expect(hooks.dispatch(failClosed, 'before_run', conflicted)).rejects.toMatchObject({ code: 'HOOK_IDEMPOTENCY_CONFLICT' });
+    expect((await events.listSince(0)).filter((event) => event.type === 'agent.lifecycle_hook')).toHaveLength(1);
+    expect(await db.one<{ revision: number }>("SELECT revision FROM workspaces WHERE id = 'local-workspace'")).toEqual(revisionAfterCommit);
+    expect(await db.one<{ status: string; attempts: number; payload_json: string | null }>(
+      "SELECT status, attempts, payload_json FROM hook_outbox WHERE event_id = 'stable-lifecycle-event-id'",
+    )).toMatchObject({ status: 'completed', attempts: 1, payload_json: null });
+  });
+
   it('times out a slow built-in handler according to the package policy', async () => {
     const project = await projects.createProject({ name: 'Hook timeout', goal: '' });
     const run = await projects.createUserMessage(project.id, project.conversationId, 'Wait for project context.');
