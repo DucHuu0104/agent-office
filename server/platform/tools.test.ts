@@ -237,6 +237,79 @@ describe('scoped memory tools', () => {
   });
 });
 
+describe('Analyst report version guard', () => {
+  it('rejects a second same-name artifact version within one analysis task', async () => {
+    const registry = await loadRegistry(process.cwd());
+    const definition = registry.definitions.get('analyst')!;
+    const writes: unknown[] = [];
+    const artifacts = {
+      create: async (input: unknown) => { writes.push(input); return { versionId: `v${writes.length}` }; },
+    } as unknown as ArtifactService;
+    const context: ToolContext = {
+      projectId: 'project-a', runId: 'run-a', taskId: 'task-a', workspaceRoot: null,
+      executionMode: 'disabled', artifacts,
+    };
+    const createArtifact = toolsFor(definition, context).find((entry) => entry.id === 'artifacts.create')!;
+
+    await expect(createArtifact.execute({ name: 'measurements_analysis.md', content: 'verified first report' })).resolves.toMatchObject({ versionId: 'v1' });
+    await expect(createArtifact.execute({ name: 'Measurements_Analysis.md', content: 'conflicting replacement' })).rejects.toThrow('already created an artifact with that name');
+
+    expect(writes).toHaveLength(1);
+    expect(createArtifact.schema.function.description).toContain('one report artifact per unique CSV summary');
+  });
+
+  it('adds every computed CSV metric to the artifact and prevents renamed duplicate reports, including after tool reload', async () => {
+    const registry = await loadRegistry(process.cwd());
+    const definition = registry.definitions.get('analyst')!;
+    const writes: Array<{ name: string; content: string }> = [];
+    let persistedArtifactContent = '';
+    const artifacts = {
+      create: async (input: { name: string; content: string }) => {
+        writes.push(input);
+        persistedArtifactContent = input.content;
+        return { id: `artifact-${writes.length}`, versionId: `v${writes.length}` };
+      },
+    } as unknown as ArtifactService;
+    const summary = { rows: 3, columns: ['x', 'y'], missing: { x: 1, y: 1 }, numeric: {
+      x: { count: 2, missing: 1, sum: 4, average: 2, min: 1, max: 3 },
+      y: { count: 2, missing: 1, sum: 6, average: 3, min: 2, max: 4 },
+    } };
+    const context: ToolContext = {
+      projectId: 'project-a', runId: 'run-a', taskId: 'task-a', workspaceRoot: null,
+      executionMode: 'disabled', artifacts,
+      getCsvSummaries: async () => [summary],
+      hasCsvSummaryArtifact: async (fingerprint) => persistedArtifactContent.includes(`<!-- agent-office-csv-summary:${fingerprint} -->`),
+      getAnalystArtifactNames: async () => writes.map((write) => write.name),
+    };
+    const tools = toolsFor(definition, context);
+    const createArtifact = tools.find((entry) => entry.id === 'artifacts.create')!;
+
+    await expect(createArtifact.execute({ name: 'measurements_analysis.csv', content: 'x,y\n1,2\n' }))
+      .rejects.toThrow('Markdown or plain-text');
+    expect(writes).toHaveLength(0);
+    await expect(createArtifact.execute({ name: 'measurements_analysis.md', content: 'Counts are available for both columns.' })).resolves.toMatchObject({ verifiedCsvSummaryCount: 1 });
+    expect(writes[0]?.content).toContain('| x | 2 | 1 | 4 | 2 | 1 | 3 |');
+    expect(writes[0]?.content).toContain('| y | 2 | 1 | 6 | 3 | 2 | 4 |');
+    expect(writes[0]?.content).toContain('Counts are available for both columns.');
+
+    const resumedTools = toolsFor(definition, context);
+    await expect(resumedTools.find((entry) => entry.id === 'artifacts.create')!.execute({ name: 'Measurements_Analysis.md', content: 'A second version after resume.' }))
+      .rejects.toThrow('already created an artifact with that name');
+    await expect(resumedTools.find((entry) => entry.id === 'artifacts.create')!.execute({ name: 'measurements_csv_summary.md', content: 'Another copy with a new name.' }))
+      .rejects.toThrow('already created a report for these CSV results');
+    expect(writes).toHaveLength(1);
+  });
+
+  it('fails closed when a numeric CSV total exceeds the supported finite range', async () => {
+    const registry = await loadRegistry(process.cwd());
+    const definition = registry.definitions.get('analyst')!;
+    const context: ToolContext = { projectId: 'project-a', runId: 'run-a', taskId: 'task-a', workspaceRoot: null, executionMode: 'disabled', artifacts: {} as ArtifactService };
+    const summarize = toolsFor(definition, context).find((entry) => entry.id === 'analysis.csv_summary')!;
+
+    await expect(summarize.execute({ csvContent: 'value\n1e308\n1e308\n' })).rejects.toThrow('excede o intervalo numérico suportado');
+  });
+});
+
 describe('research search provider', () => {
   it('unwraps DuckDuckGo result links and keeps only public HTTPS destinations', () => {
     const html = `

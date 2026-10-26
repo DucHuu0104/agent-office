@@ -41,7 +41,7 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P2.05 | Đạt | Persistent chat, validated text attachments, checksums and project-switch draft handling. |
 | P2.06 | Đạt | SSE resume/replay/deduplication, stale cursor reset and multi-tab synchronization. |
 | P2.07 | Đạt | Pool and Coordinator-ready states work with missing model credentials without background model calls. |
-| P2.08 | Đạt | EN/ES/FR catalogs each validate 3,241/3,241; platform client tests pass 17/17. |
+| P2.08 | Đạt | Agent Office has a persistent Vietnamese/English selector; production browser smoke switches EN → VI → EN and verifies translated settings. Keyboard selection, empty/error states and room lifecycle are covered. The shared office catalog also now validates 3,256 entries in VI. |
 
 ## P3 — Một agent làm việc thật
 
@@ -90,7 +90,7 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P6.02 | Đạt | Docker and local-trusted modes have explicit policy, limits, preview isolation, cancellation and process cleanup; Docker tests passed 12/12. |
 | P6.03 | Đạt | Snapshot/patch/check workflow preserves unrelated dirty files, binds approval to hashes, tests evidence and does not deploy. |
 | P6.04 | Đạt | Researcher/Writer with keyless DuckDuckGo and source provenance; live search and official-page fetch passed. |
-| P6.05 | Đạt | CSV analysis uses deterministic tools; fixture results match independent arithmetic checks. |
+| P6.05 | Đạt | CSV summaries are deterministic and checked against independent fixture arithmetic. Runtime now appends a complete verified metrics table to Analyst task output, Markdown/plain-text artifacts and final Coordinator reply; duplicate reports for the same summary and unsupported report MIME formats are rejected. Integration tests deliberately use an incomplete model answer and verify all three outputs. |
 | P6.06 | Đạt | Hooks, memory summaries/revisions, deletion, export/import and retention have restart/idempotency tests. |
 | P6.07 | Đạt | Config-added Designer is previewed, applied without scheduler edits, assigned, drained and returned to pool in browser smoke. |
 | P6.08 | Đạt | Coding, research, CSV and orchestration workflows are covered by deterministic E2E and live task evidence; output quality is still awaiting manual rubric review. |
@@ -104,7 +104,7 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P7.03 | Đạt | Windows traversal/junction/secret, SSRF and prompt-injection suites; path flavor regression is included in the latest Linux run. |
 | P7.04 | Đạt | Eight-hour isolated SSE/load soak plus slow-client, replay, lease and repeated-worker-failure tests. |
 | P7.05 | Đạt | Hard token/USD limits, unknown/unpriced usage and retries are covered; provider list-rate estimates are not an invoice. |
-| P7.06 | Một phần | 40-task corpus validates; current post-filter live pair covers C10 (36,711 tokens, estimated $0.002231). The historical 72-run matrix has failures and the review sheet is blank, so quality/time/cost comparison is not signed off. |
+| P7.06 | Một phần | The 12-task live baseline completed 72/72 runs and 36/36 paired comparisons (298 canonical requests, 680,492 tokens, estimated $0.043602; report `evals/results/agent-office-v1-baseline-live-20261026.json`). A duplicate recovery attempt is disclosed separately. The report-bound human scoring sheet is blank, so quality comparison is not signed off. |
 | P7.07 | Đạt | Lifecycle content minimization, retention and memory tombstone/revision regressions. |
 | P7.08 | Một phần | Candidate has no known blocking defect in current automated suite; formal sign-off waits on P7.06 review, hosted CI evidence and owner UAT. |
 
@@ -125,14 +125,25 @@ Ngày kiểm tra: 26/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 
 - Linux Node 22.12 CI-equivalent: clean `npm ci`, typecheck, full repository suite (2,257 passed, 9 skipped across 214 passing files and one skipped file) and production build passed. This is a local Docker runner, not hosted CI.
 - Windows Node 24.17: full repository suite (2,240 passed, 26 skipped across 214 passing files and one skipped file) passed. Targeted Windows path/config/executor regressions passed 15/15 and release-file regression 1/1; browser E2E and Agent Office production build passed.
-- Current browser report: `evals/results/office-browser-smoke-2026-10-26T12-59-25-207Z.json`; 10 projects, 30 project agents, 36 rendered characters, zero browser errors, Settings/Activity, assignment/return, Designer reload, reconnect/restart, approvals and mobile layout passed.
-- Release tests, paired live-model execution and exact limits are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
+- Windows serial platform suite: `npm run office:test -- --maxWorkers=1 --pool=threads` passes 327 tests, skips 7, across 43 passing files and one skipped file after Coordinator final-answer repair and Analyst artifact validation. Typecheck and production build pass.
+- Previous runtime package: `release/agent-office-0.1.0-uat-r107-20261026` has 168 manifest-listed files and bundle SHA-256 `8323b01c74ed757ad40eb28c2c3683c1f62d824f413c5c70c544282154606888`. It passes manifest verification, clean production install (46 packages), zero-vulnerability audit, offline config validation and isolated package smoke. The live `http://127.0.0.1:4851/office` instance remains on r101 with execution disabled; it has not been switched to r107. The older 4849/4850 local services were left untouched.
+- The latest completed runtime package is documented below; the older r107 package predates deterministic Analyst reporting and the Vietnamese shared catalog.
+- A second UAT instance at `http://127.0.0.1:4852/office` reports `dockerChecksEnabled: true` with a separate config/data directory; the default instance at 4851 remains execution-disabled. Windows real Docker executor suite passes 12/12, and the synthetic offline workspace baseline yields the two expected failing assertions in an isolated snapshot.
+- Exact r101 production CLI live probes passed for both text and function calling: 310 tokens and 611 tokens respectively (921 total), with workspace execution disabled.
+- Current browser report: `evals/results/office-browser-smoke-2026-10-26T16-32-56-556Z.json`; 10 projects, 30 project agents, 36 rendered characters, project-isolated message drafts, zero browser errors, Settings/Activity, assignment/return, Designer reload, reconnect/restart, approvals and mobile layout passed at 59.9 FPS.
+- Focused live A01/A09 reporting checks: prompt run 4/4 succeeded (19 requests, 40,556 tokens, estimated $0.002946); follow-up same-name artifact guard check 1/1 succeeded (7 requests, 13,322 tokens, estimated $0.000877). Although execution and artifact guard behavior passed, model output still omitted requested numeric metrics and produced two differently named incomplete artifacts in the guard run. These are operational results, not human quality acceptance; review the current live reports in `docs/AGENT-OFFICE-TEST-REPORT.md` and keep P7.06 open.
+- Visual continuity from Habblaud remains a P8.06 owner acceptance gate: sidebar, animated assignment movement, safe activity bubbles, persisted visual settings, and bottom Activity ticker/feed/toast are automated-smoke-covered; pixel-level owner UAT has not been signed off.
+- Release tests and the reconciled 72-run live-model baseline are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
+
+- Latest UAT package r108: 169 manifest-listed files, bundle SHA-256 `397e105c0a94de590dadf51cbf471d038c01f7c938c78bded02c8dcb52663086`; manifest verifies, clean install has 46 production packages, audit reports zero vulnerabilities, offline config validation passes with no model credentials and disabled execution, and isolated smoke passes health/office HTTP 200, schema 15 integrity, no provider calls and port release. The live 4851 process remains on r101.
 
 ## Gate còn lại trước khi gọi v1 hoàn tất
 
 1. Owner chạy checklist Windows UAT và xác nhận pixel-level UI cùng các workflow end-to-end.
-2. Chấm score sheet của live C10 pair và hoàn thành baseline review theo rubric; chỉ kết luận chất lượng sau đó.
-3. Chạy CI hosted trên remote repository do owner quản lý; hiện `upstream` chỉ là Habblaud và không có remote Agent Office để push.
+2. Chấm score sheet của live C10 pair và review sheet 72 lượt baseline theo rubric; chỉ kết luận chất lượng so sánh sau đó.
+3. Push the reviewed implementation to the new public Agent Office repository and resolve its hosted Windows CI results; `upstream` remains the Habblaud source.
 4. Sau khi các gate trên đạt, tạo tag/release v1 và hoàn tất handover P8.08. Đối soát hóa đơn provider cần dữ liệu tài khoản của owner; file báo cáo hiện chỉ có usage và ước tính giá niêm yết.
 
 P9 trong backlog là sau v1 và không thuộc phạm vi release local-first này.
+
+The shared UI now includes Vietnamese translations for the 3,256-string shared catalog; locale checks pass for EN/ES/FR/VI, the Agent Office language switch passes EN → VI → EN browser coverage, and the configured server locale follows `OFFICE_DEFAULT_LOCALE` unless `HABBLAUD_LANG` overrides it. Live A09 now produces one Analyst artifact with its verified metrics table in Vietnamese across the task output, artifact and final response. Manual rubric scoring and owner UAT remain open.

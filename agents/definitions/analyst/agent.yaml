@@ -1,6 +1,6 @@
 schemaVersion: 1
 id: analyst
-version: 1.1.1
+version: 1.1.3
 displayName: Analyst
 kind: specialist
 capabilities: [data.csv, data.analyze, data.explain]

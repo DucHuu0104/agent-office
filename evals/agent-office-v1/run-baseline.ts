@@ -18,6 +18,7 @@ import { allocateBaselineRunTokens, MIN_REMAINING_TOKENS_TO_START_RUN, requiredB
 import { summarizeBaselineToolOperations } from './baseline-report';
 import { createBaselinePlan, resolveBaselineTaskIds, startsPairedComparison, summarizePairedComparisons, type BaselinePlan, type BaselineRun, type BaselineStrategy } from './baseline-plan';
 import { isSafeIsolatedWorkspaceApproval, resolveFixturePath } from './baseline-safety';
+import { isDockerImageAvailableLocally } from './baseline-docker';
 
 const execFile = promisify(execFileCallback);
 const DEFAULT_MAX_TOKENS_PER_RUN = 40_000;
@@ -57,7 +58,7 @@ interface CapturedMessage {
   content: string;
 }
 
-interface RunResult {
+export interface RunResult {
   taskId: string;
   category: EvalTask['category'];
   strategy: BaselineStrategy;
@@ -128,8 +129,8 @@ export async function runBaselineCli(args: string[] = process.argv.slice(2)): Pr
   }
   if (options.dockerChecks) {
     const image = config.docker.image;
-    const result = await execFile('docker', ['image', 'inspect', image], { windowsHide: true, timeout: 15_000 }).catch(() => null);
-    if (!result) throw new Error('Docker check mode requires the configured digest-pinned image to be available locally; no image pull is attempted.');
+    const available = await isDockerImageAvailableLocally(image, (args) => execFile('docker', args, { windowsHide: true, timeout: 15_000 }));
+    if (!available) throw new Error('Docker check mode requires the configured digest-pinned image to be available locally; no image pull is attempted.');
   }
 
   const outputPath = resolve(options.outputPath ?? join(configDir, 'evals', 'results', `agent-office-v1-baseline-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
@@ -417,7 +418,9 @@ async function runOne(
   } finally {
     if (runtime) await runtime.stop().catch(() => undefined);
     if (db) await db.close().catch(() => undefined);
-    await rm(sandboxRoot, { recursive: true, force: true });
+    // A Windows process can briefly keep SQLite handles alive after close(); cleanup is best effort
+    // so a completed provider run is still returned and checkpointed instead of being lost.
+    await rm(sandboxRoot, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
@@ -539,7 +542,7 @@ async function listWorkspaceChecksums(root: string): Promise<Array<{ path: strin
   return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function summarize(runs: RunResult[], plan: BaselinePlan, measuredCostUsd: number | null, maxTotalTokens: number): Record<string, unknown> {
+export function summarize(runs: RunResult[], plan: BaselinePlan, measuredCostUsd: number | null, maxTotalTokens: number): Record<string, unknown> {
   const pairedComparison = summarizePairedComparisons(plan, runs);
   const byStrategy = Object.fromEntries(['single-agent', 'multi-agent'].map((strategy) => {
     const selected = runs.filter((run) => run.strategy === strategy);

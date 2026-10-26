@@ -431,10 +431,35 @@ try {
   const messageResponse = page.waitForResponse((response) => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/messages')
     && new URL(response.url()).pathname.includes('/conversations/'));
-  await page.locator('#message-input').fill('Write a short project introduction and save it as a markdown artifact.');
+  const assignmentMessage = 'Write a short project introduction and save it as a markdown artifact.';
+  await page.locator('#message-input').fill(assignmentMessage);
+  await projectCard(names[0]).click();
+  await page.locator('.project-title h1').getByText(names[0], { exact: true }).waitFor();
+  if (await page.locator('#message-input').inputValue()) throw new Error('A project message draft leaked into another room.');
+  await projectCard(assignmentProjectName).click();
+  await page.locator('.project-title h1').getByText(assignmentProjectName, { exact: true }).waitFor();
+  if (await page.locator('#message-input').inputValue() !== assignmentMessage) throw new Error('The project message draft did not survive switching rooms.');
   await page.locator('#message-form button[type="submit"]').click();
   const acceptedMessage = await messageResponse.catch((error) => {
-    throw new Error(`${error instanceof Error ? error.message : String(error)} Chat submit trace: ${JSON.stringify(chatSubmitTrace)}.`);
+    return page.evaluate((detail) => {
+      const input = document.querySelector('#message-input');
+      const button = document.querySelector('#message-form button[type="submit"]');
+      return {
+        error: detail.error,
+        chatSubmitTrace: detail.trace,
+        pageErrors: detail.pageErrors,
+        formExists: Boolean(document.querySelector('#message-form')),
+        formConnected: document.querySelector('#message-form')?.isConnected ?? false,
+        inputValue: input?.value,
+        inputValidity: input instanceof HTMLTextAreaElement ? input.validity.valid : null,
+        inputValidationMessage: input instanceof HTMLTextAreaElement ? input.validationMessage : null,
+        buttonDisabled: button instanceof HTMLButtonElement ? button.disabled : null,
+        buttonVisible: button instanceof HTMLElement ? button.getBoundingClientRect().width > 0 : null,
+        projectHeading: document.querySelector('.project-title h1')?.textContent?.trim(),
+      };
+    }, { error: error instanceof Error ? error.message : String(error), trace: chatSubmitTrace, pageErrors: errors.slice(-5) }).then((state) => {
+      throw new Error(`Chat submission did not reach the server: ${JSON.stringify(state)}. Server output: ${output}.`);
+    });
   });
   if (acceptedMessage.status() !== 202) throw new Error(`The browser assignment message was rejected with HTTP ${acceptedMessage.status()}.`);
   const { runId } = await acceptedMessage.json();

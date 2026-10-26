@@ -9,11 +9,12 @@
 // Os textos de atividade são montados pelo servidor, então seguem o idioma do servidor.
 import { DICTIONARIES } from './locales/all';
 
-export type Locale = 'pt-BR' | 'en' | 'es' | 'fr';
+export type Locale = 'pt-BR' | 'en' | 'es' | 'fr' | 'vi';
 
 /** Na ordem do seletor; o nome de cada idioma vai na própria língua, para quem não entende o idioma atual. */
 export const LOCALES: { id: Locale; name: string }[] = [
   { id: 'pt-BR', name: 'Português' },
+  { id: 'vi', name: 'Tiếng Việt' },
   { id: 'en', name: 'English' },
   { id: 'es', name: 'Español' },
   { id: 'fr', name: 'Français' },
@@ -36,20 +37,23 @@ export function normalizeLocale(v: string | null | undefined): Locale | undefine
   if (!s) return undefined;
   if (s === 'fr' || s.startsWith('fr-')) return 'fr';
   if (s === 'pt' || s.startsWith('pt-')) return 'pt-BR';
+  if (s === 'vi' || s.startsWith('vi-')) return 'vi';
   if (s === 'en' || s.startsWith('en-')) return 'en';
   if (s === 'es' || s.startsWith('es-')) return 'es';
   return undefined;
 }
 
 /**
- * Idioma do servidor (atividades, avisos, logs). HABBLAUD_LANG vale para qualquer idioma. Do sistema (LC_ALL,
+ * Idioma do servidor (atividades, avisos, logs). HABBLAUD_LANG continua sendo a substituição explícita do Habblaud;
+ * no Agent Office, OFFICE_DEFAULT_LOCALE define vi/en quando HABBLAUD_LANG não está definido. Do sistema (LC_ALL,
  * LC_MESSAGES, LANG e, por último, o Intl) vale francês, espanhol ou português, mas não o inglês: muitas máquinas e
- * containers vêm em inglês por padrão (en_US, ou o en-US do Node sem LANG), mesmo para quem usa outra língua, e o
- * escritório mudaria de idioma sozinho. Para o servidor em inglês: HABBLAUD_LANG=en.
+ * containers vêm em inglês por padrão (en_US, ou o en-US do Node sem LANG), mesmo para quem usa outra língua.
  */
 export function serverLocale(env: Record<string, string | undefined>, intl?: string): Locale {
   const own = normalizeLocale(env.HABBLAUD_LANG);
   if (own) return own;
+  const office = normalizeLocale(env.OFFICE_DEFAULT_LOCALE);
+  if (office === 'vi' || office === 'en') return office;
   for (const v of [env.LC_ALL, env.LC_MESSAGES, env.LANG, intl]) {
     const n = normalizeLocale(v);
     if (n && n !== 'en') return n;
@@ -113,5 +117,5 @@ export function tr(src: string, args?: readonly unknown[]): string {
 
 /** Idioma no formato do Intl (datas, números). */
 export function intlLocale(): string {
-  return current === 'fr' ? 'fr-FR' : current === 'en' ? 'en-US' : current === 'es' ? 'es' : 'pt-BR';
+  return current === 'fr' ? 'fr-FR' : current === 'en' ? 'en-US' : current === 'es' ? 'es' : current === 'vi' ? 'vi-VN' : 'pt-BR';
 }

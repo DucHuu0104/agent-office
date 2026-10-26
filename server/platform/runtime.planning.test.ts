@@ -28,10 +28,13 @@ describe('runtime rejects invalid plans before dispatch', () => {
   let plannedToolNames: string[];
   let rawPlanResponses: string[];
   let coordinatorSummaryText: string;
+  let coordinatorSummaryResponses: string[];
+  let coordinatorSummarySystems: string[];
   let planCapabilityOptions: string[][];
   let lastCoordinatorPlanningToolChoice: unknown;
   let requestCount = 0;
   let planRequestCount = 0;
+  let specialistToolCalls: Array<{ name: string; arguments: Record<string, unknown> }>;
   let blockNextSpecialist = false;
   let lastCoordinatorPlanningSystem = '';
   let lastCoordinatorSummarySystem = '';
@@ -50,12 +53,15 @@ describe('runtime rejects invalid plans before dispatch', () => {
     await projects.seedRegistry();
     requestCount = 0;
     planRequestCount = 0;
+    specialistToolCalls = [];
     plannedResponses = [];
     plannedToolNames = [];
     rawPlanResponses = [];
     directPlanAnswerText = null;
     clarificationQuestion = null;
     coordinatorSummaryText = 'The corrected plan was accepted.';
+    coordinatorSummaryResponses = [];
+    coordinatorSummarySystems = [];
     planCapabilityOptions = [];
     lastCoordinatorPlanningToolChoice = undefined;
     blockNextSpecialist = false;
@@ -77,16 +83,32 @@ describe('runtime rejects invalid plans before dispatch', () => {
           messages?: Array<{ role?: string; content?: string | null }>;
         };
         if (!payload.tools?.some((tool) => tool.function?.name === 'submit_plan')) {
-          if (!payload.tools?.length) lastCoordinatorSummarySystem = payload.messages?.find((message) => message.role === 'system')?.content ?? '';
+          if (!payload.tools?.length) {
+            lastCoordinatorSummarySystem = payload.messages?.find((message) => message.role === 'system')?.content ?? '';
+            coordinatorSummarySystems.push(lastCoordinatorSummarySystem);
+          }
           if (blockNextSpecialist) {
             blockNextSpecialist = false;
             lastSpecialistSystemText = payload.messages?.find((message) => message.role === 'system')?.content ?? '';
             markSpecialistStarted();
             await specialistGate;
           }
+          const nextSpecialistCall = specialistToolCalls[0];
+          if (payload.tools?.length && nextSpecialistCall && payload.tools.some((tool) => tool.function?.name === nextSpecialistCall.name)) {
+            specialistToolCalls.shift();
+            const id = `specialist-tool-${requestCount}`;
+            const chunks = [
+              { id, choices: [{ delta: { tool_calls: [{ index: 0, id: `${id}-call`, type: 'function', function: { name: nextSpecialistCall.name, arguments: JSON.stringify(nextSpecialistCall.arguments) } }] }, finish_reason: null }] },
+              { id, choices: [{ delta: {}, finish_reason: 'tool_calls' }], usage: { prompt_tokens: 12, completion_tokens: 6, total_tokens: 18 } },
+            ];
+            response.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+            response.end(`${chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join('')}data: [DONE]\n\n`);
+            return;
+          }
           const id = `summary-${requestCount}`;
+          const content = payload.tools?.length ? 'The specialist completed the requested work.' : coordinatorSummaryResponses.shift() ?? coordinatorSummaryText;
           const chunks = [
-            { id, choices: [{ delta: { content: payload.tools?.length ? 'The specialist completed the requested work.' : coordinatorSummaryText }, finish_reason: null }] },
+            { id, choices: [{ delta: { content }, finish_reason: null }] },
             { id, choices: [{ delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: 12, completion_tokens: 6, total_tokens: 18 } },
           ];
           response.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
@@ -377,6 +399,71 @@ describe('runtime rejects invalid plans before dispatch', () => {
     )).toEqual({ content: directPlanAnswerText });
   });
 
+  it('repairs progress-only Coordinator summaries before showing the final answer', async () => {
+    const capability = registry.definitions.get('analyst')!.manifest.capabilities[0]!;
+    currentPlan = {
+      goal: 'Summarize measurements.',
+      successCriteria: ['The final answer includes both numeric counts, sums and missing counts.'],
+      tasks: [{ key: 'summary', title: 'Summarize measurements', objective: 'Compute the requested CSV summary.', capability, dependsOn: [] }],
+    };
+    const expectedFinalAnswer = 'Measurements có 3 hàng. Cột x có 2 giá trị số, thiếu 1, tổng bằng 4; cột y có 2 giá trị số, thiếu 1, tổng bằng 6.';
+    coordinatorSummaryResponses = [
+      'Đã gọi công cụ phân tích. Hãy để tôi kiểm tra kết quả.',
+      expectedFinalAnswer,
+    ];
+    const transient = vi.spyOn(events, 'transient');
+    const project = await projects.createProject({ name: 'Final response repair', goal: '' });
+    const request = await projects.createUserMessage(project.id, project.conversationId, 'Summarize measurements and report missing counts separately from numeric count.');
+    runtime!.enqueue(request.runId);
+
+    await vi.waitFor(async () => {
+      expect(await db.one<{ status: string }>('SELECT status FROM runs WHERE id = ?', [request.runId])).toEqual({ status: 'succeeded' });
+    }, { timeout: 5_000 });
+
+    const finalMessage = await db.one<{ content: string }>(
+      "SELECT content FROM messages WHERE run_id = ? AND speaker = 'coordinator' ORDER BY created_at DESC LIMIT 1", [request.runId],
+    );
+    const coordinatorId = (await db.one<{ coordinator_id: string }>('SELECT instance_id AS coordinator_id FROM coordinator_bindings WHERE project_id = ?', [project.id]))!.coordinator_id;
+    const coordinatorDeltas = transient.mock.calls
+      .filter(([type, payload]) => type === 'message.delta' && (payload as { agentInstanceId?: string }).agentInstanceId === coordinatorId)
+      .map(([, payload]) => (payload as { delta: string }).delta);
+
+    expect(coordinatorSummarySystems).toHaveLength(2);
+    expect(coordinatorSummarySystems[0]).toContain('Atenda todas as partes do pedido');
+    expect(coordinatorSummarySystems[1]).toContain('Lượt trước chỉ mô tả tiến độ');
+    expect(finalMessage?.content).toBe(expectedFinalAnswer);
+    expect(coordinatorDeltas).toEqual([expectedFinalAnswer]);
+    expect(coordinatorDeltas.join('')).not.toContain('Đã gọi công cụ phân tích');
+  });
+
+  it('repairs markdown tool-call syntax in a Coordinator final answer', async () => {
+    const capability = registry.definitions.get('analyst')!.manifest.capabilities[0]!;
+    currentPlan = {
+      goal: 'Summarize sales.',
+      successCriteria: ['The user receives the computed summary.'],
+      tasks: [{ key: 'summary', title: 'Summarize sales', objective: 'Compute requested statistics.', capability, dependsOn: [] }],
+    };
+    const expectedFinalAnswer = 'sales.csv has 3 rows. Revenue count is 2, missing count is 1, and the sum is 30.';
+    coordinatorSummaryResponses = [
+      'Tôi sẽ phân tích file sales.csv.\n```analysis.csv_summary\nfile_path=sales.csv\nnumeric_columns=[revenue]\n```',
+      expectedFinalAnswer,
+    ];
+    const project = await projects.createProject({ name: 'Tool syntax repair', goal: '' });
+    const request = await projects.createUserMessage(project.id, project.conversationId, 'Summarize revenue and missing values.');
+    runtime!.enqueue(request.runId);
+
+    await vi.waitFor(async () => {
+      expect(await db.one<{ status: string }>('SELECT status FROM runs WHERE id = ?', [request.runId])).toEqual({ status: 'succeeded' });
+    }, { timeout: 5_000 });
+
+    const finalMessage = await db.one<{ content: string }>(
+      "SELECT content FROM messages WHERE run_id = ? AND speaker = 'coordinator' ORDER BY created_at DESC LIMIT 1", [request.runId],
+    );
+    expect(coordinatorSummarySystems).toHaveLength(2);
+    expect(finalMessage?.content).toBe(expectedFinalAnswer);
+    expect(finalMessage?.content).not.toContain('analysis.csv_summary');
+  });
+
   it('filters private reasoning from runtime deltas and the persisted Coordinator answer', async () => {
     const chunks = ['The answer is ', '<|think', 'ing|>private segment', '<|/thinking|>42.'];
     const gateway: ModelGateway = {
@@ -434,7 +521,45 @@ describe('runtime rejects invalid plans before dispatch', () => {
     );
     expect(finalMessage?.content).toContain('The specialist completed the requested work.');
     expect(finalMessage?.content).not.toContain('<tool_call>');
-    expect(lastCoordinatorSummarySystem).toContain('Không gọi hoặc mô tả tool bằng cú pháp giao thức');
+    expect(lastCoordinatorSummarySystem).toContain('Não chame nem descreva ferramentas usando sintaxe de protocolo');
+  });
+
+  it('preserves computed CSV metrics in the Analyst result, artifact, and final Coordinator answer', async () => {
+    currentPlan = {
+      goal: 'Summarize measurements accurately.',
+      successCriteria: ['Each numeric column includes count, missing, sum, average, minimum, and maximum.'],
+      tasks: [{ key: 'measurements', title: 'Summarize measurements', objective: 'Summarize the supplied CSV and create a report artifact.', capability: 'data.analyze', dependsOn: [] }],
+    };
+    specialistToolCalls = [
+      { name: 'summarize_csv', arguments: { csvContent: 'x,y\n1,2\n,4\n3,\n' } },
+      { name: 'create_artifact', arguments: { name: 'measurements_analysis.md', content: 'The numeric counts are two for both columns.' } },
+    ];
+    coordinatorSummaryText = 'There are two numeric observations per column.';
+    const project = await projects.createProject({ name: 'Verified CSV summary', goal: '' });
+    const request = await projects.createUserMessage(project.id, project.conversationId, 'Analyze the measurements and give me a report.');
+    runtime!.enqueue(request.runId);
+
+    await vi.waitFor(async () => {
+      expect(await db.one<{ status: string }>('SELECT status FROM runs WHERE id = ?', [request.runId])).toEqual({ status: 'succeeded' });
+    }, { timeout: 5_000 });
+
+    const task = await db.one<{ output: string }>("SELECT output FROM tasks WHERE run_id = ? AND task_key = 'measurements'", [request.runId]);
+    const finalMessage = await db.one<{ content: string }>(
+      "SELECT content FROM messages WHERE run_id = ? AND speaker = 'coordinator' ORDER BY created_at DESC LIMIT 1", [request.runId],
+    );
+    const artifacts = new ArtifactService(db, events, dataDir);
+    const artifact = (await artifacts.list(project.id)).find((entry) => entry.logicalName === 'measurements_analysis.md');
+    const artifactContent = artifact ? (await artifacts.content(artifact.versionId))?.content.toString('utf8') : undefined;
+    const expectedRows = ['| x | 2 | 1 | 4 | 2 | 1 | 3 |', '| y | 2 | 1 | 6 | 3 | 2 | 4 |'];
+
+    for (const content of [task?.output, artifactContent, finalMessage?.content]) {
+      expect(content).toContain('Resumo CSV verificado pelo Agent Office');
+      expect(content).toContain('Linhas de dados: 3');
+      for (const row of expectedRows) expect(content).toContain(row);
+    }
+    expect(lastCoordinatorSummarySystem).toContain('a plataforma anexará automaticamente');
+    expect(await db.one<{ count: number }>("SELECT COUNT(*) AS count FROM tool_operations WHERE task_id = (SELECT id FROM tasks WHERE run_id = ? AND task_key = 'measurements') AND tool_id = 'artifacts.create' AND status = 'succeeded'", [request.runId]))
+      .toEqual({ count: 1 });
   });
 
   it('does not lease a dependent Reviewer until the Developer task succeeds', async () => {

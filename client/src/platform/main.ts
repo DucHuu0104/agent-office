@@ -44,6 +44,8 @@ let snapshot: OfficeSnapshot | null = null;
 const durableEvents = new DurableEventTracker();
 let visibleProjects: Project[] = [];
 let projectDetail: ProjectReply | null = null;
+let renderedProjectId: string | null = null;
+const messageDrafts = new Map<string, string>();
 let selectedProjectId: string | null = null;
 let refreshRequestSequence = 0;
 let selectFirstWhenSelectionIsMissing = false;
@@ -485,6 +487,8 @@ async function setAgentDraining(agentId: string, currentlyDraining: boolean, but
 }
 
 function renderProjectPanel(data: ProjectReply): void {
+  const previousInput = root.querySelector<HTMLTextAreaElement>('#message-input');
+  if (renderedProjectId && previousInput && !previousInput.disabled) storeMessageDraft(renderedProjectId, previousInput.value);
   const project = data.project;
   const assigned = data.agents.filter((agent) => agent.projectId === project.id);
   const running = assigned.filter((agent) => agent.execution === 'running').length;
@@ -505,6 +509,10 @@ function renderProjectPanel(data: ProjectReply): void {
     ${data.workspaceAttached ? `<section class="workspace-preview-section"><div class="section-heading panel-heading"><span>${tr('Pré-visualização do site')}</span><button class="button secondary preview-start-button" id="workspace-preview-start" type="button">${tr('Abrir pré-visualização do site')}</button></div><div id="workspace-preview-state">${data.workspacePreview ? renderWorkspacePreview(data.workspacePreview) : `<p class="muted">${tr('A pré-visualização executa um script do workspace numa cópia temporária por até 30 minutos.')}</p>`}</div></section>` : ''}
     <section class="artifacts-section"><div class="section-heading panel-heading"><span>${tr('Artefatos')}</span></div><div id="artifact-list" class="artifact-list"><p class="muted">${tr('Sem artifacts ainda.')}</p></div></section>
     <section class="conversation-section"><div class="section-heading panel-heading"><span>${tr('Conversa')}</span>${activeRun ? `<button id="cancel-run" class="stop-button">■ ${tr('Parar execução')}</button>` : ''}</div><div class="messages" id="messages">${renderMessages(data.messages)}</div><form id="message-form" class="composer">${steerableRun ? `<select id="message-mode" aria-label="${tr('Enviar para')}"><option value="enqueue">${tr('Enviar após o run atual')}</option><option value="steer">${tr('Orientar o run atual')}</option></select>${steerableTasks.length ? `<select id="steering-task" aria-label="${tr('Task que receberá a orientação')}" hidden><option value="">${tr('Todas as tasks')}</option>${steerableTasks.map((task) => `<option value="${esc(task.id)}">${esc(task.title)}</option>`).join('')}</select>` : ''}` : ''}<button class="attachment-button" id="pick-attachments" type="button" aria-label="${tr('Đính kèm tệp')}" title="${tr('Đính kèm tệp')}">📎</button><input id="attachment-input" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json" multiple hidden><textarea id="message-input" name="text" rows="2" maxlength="20000" placeholder="${tr('Escreva para o Coordinator…')}" required></textarea><button class="send-button" type="submit" aria-label="${tr('Enviar')}">↑</button></form><div id="pending-attachments" class="pending-attachments"></div><div class="composer-hint">${steerableRun ? tr('Orientações são entregues no próximo ponto seguro do agente.') : activeRun ? activeRun.errorCode === 'WAITING_FOR_USER_INPUT' ? tr('Tin nhắn tiếp theo sẽ trả lời câu hỏi đang chờ.') : tr('Tin nhắn sẽ được xếp hàng sau lượt đang chạy.') : tr('Use Developer, Researcher, Analyst ou Writer para começar.')}</div></section>`;
+  const messageInput = root.querySelector<HTMLTextAreaElement>('#message-input')!;
+  messageInput.value = messageDrafts.get(project.id) ?? '';
+  messageInput.addEventListener('input', () => storeMessageDraft(project.id, messageInput.value));
+  renderedProjectId = project.id;
   const archiveButton = root.querySelector<HTMLButtonElement>('#archive-project');
   root.querySelector<HTMLButtonElement>('#close-project-panel')!.onclick = () => setProjectPanelOpen(false);
   if (archiveButton) archiveButton.onclick = archiveSelected;
@@ -987,6 +995,7 @@ async function reloadAgents(): Promise<void> {
 async function sendMessage(event: SubmitEvent): Promise<void> {
   event.preventDefault();
   if (!projectDetail || busy) return;
+  const submittedProject = projectDetail.project;
   const form = event.currentTarget as HTMLFormElement;
   const input = form.querySelector<HTMLTextAreaElement>('#message-input')!;
   const activeRun = projectDetail.activeRuns.find((run) => ['queued', 'planning', 'executing', 'waiting_approval', 'paused'].includes(run.status));
@@ -995,19 +1004,26 @@ async function sendMessage(event: SubmitEvent): Promise<void> {
   const targetTaskId = mode === 'steer' ? form.querySelector<HTMLSelectElement>('#steering-task')?.value : undefined;
   const text = input.value.trim();
   if (!text) return;
+  messageDrafts.delete(submittedProject.id);
   busy = true;
   input.value = '';
   input.disabled = true;
   root.querySelector<HTMLButtonElement>('#pick-attachments')!.disabled = true;
   try {
     const attachments = await Promise.all(attachmentDraft.files.map(async (file) => ({ name: file.name, mimeType: attachmentMime(file.name)!, content: await file.text() })));
-    await fetchJson(`/platform/v1/conversations/${encodeURIComponent(projectDetail.project.conversationId)}/messages`, {
+    await fetchJson(`/platform/v1/conversations/${encodeURIComponent(submittedProject.conversationId)}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ text, mode, ...(targetTaskId ? { targetTaskId } : {}), ...(mode === 'steer' && steerableRun ? { expectedVersion: steerableRun.version } : {}), ...(attachments.length ? { attachments } : {}) }),
     });
     attachmentDraft.clear();
     await refresh(false);
-  } catch (error) { showBanner(error instanceof Error ? error.message : tr('Não foi possível enviar a mensagem.')); input.value = text; }
+  } catch (error) { showBanner(error instanceof Error ? error.message : tr('Não foi possível enviar a mensagem.')); input.value = text; storeMessageDraft(submittedProject.id, text); }
   finally { busy = false; input.disabled = false; renderPendingAttachments(); input.focus(); }
+}
+
+function storeMessageDraft(projectId: string, text: string): void {
+  messageDrafts.delete(projectId);
+  messageDrafts.set(projectId, text);
+  while (messageDrafts.size > 100) messageDrafts.delete(messageDrafts.keys().next().value!);
 }
 
 async function archiveSelected(): Promise<void> {
