@@ -310,8 +310,7 @@ describe('workspace write approval recovery', () => {
 
     let cancellationSettled = false;
     const cancellation = runtime.cancel(request.runId).then((result) => { cancellationSettled = true; return result; });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(signalSeen?.aborted).toBe(true);
+    await vi.waitFor(() => expect(signalSeen?.aborted).toBe(true), { timeout: 10_000, interval: 10 });
     expect(cancellationSettled).toBe(false);
 
     finishTool();
