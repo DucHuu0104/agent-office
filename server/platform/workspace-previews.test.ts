@@ -88,6 +88,36 @@ describe('managed workspace website previews', () => {
     }
   });
 
+  it('does not pass npm invocation arguments through to the preview script', async () => {
+    const fixture = await createFixture();
+    const manager = new WorkspacePreviewManager({ dataDir: fixture.dataDir, execution: { mode: 'local-trusted' } });
+    try {
+      await writeFile(join(fixture.root, 'package.json'), JSON.stringify({
+        name: 'preview-argv-fixture', version: '1.0.0',
+        scripts: { preview: 'node server.mjs' },
+      }));
+      await writeFile(join(fixture.root, 'server.mjs'), [
+        "import { createServer } from 'node:http';",
+        "createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(process.argv.slice(2))); }).listen(Number(process.env.PORT), process.env.HOST);",
+      ].join('\n'));
+      const setup = await manager.describe('project-preview-argv', fixture.root);
+      const preview = await manager.start({
+        projectId: 'project-preview-argv',
+        root: fixture.root,
+        script: 'preview',
+        packageChecksum: setup.packageChecksum,
+        allowNetworkAccess: true,
+      });
+      const response = await fetch(preview.url);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual([]);
+    } finally {
+      await manager.closeAll();
+      await rm(fixture.dataDir, { recursive: true, force: true });
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   it('cleans the preview when its process supervisor loses the owner IPC channel', async () => {
     const fixture = await createFixture();
     const manager = new WorkspacePreviewManager({ dataDir: fixture.dataDir, execution: { mode: 'local-trusted' } });

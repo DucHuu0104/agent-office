@@ -15,7 +15,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P0.05 | Đạt | Scripts build/test/config validation chạy trên PowerShell và Linux Node 22.12. |
 | P0.06 | Đạt | Threat model và policy ghi trong tài liệu 11; Docker executor thật đã qua 12/12 ca với network/resource/mount/cancel/cleanup kiểm chứng. |
 | P0.07 | Đạt | Entry point mới chạy runtime độc lập; smoke xác nhận không cần watcher/uplink/installer Habblaud cũ. |
-| P0.08 | Một phần | Hosted GitHub run #40373063610: Linux thành công; Windows platform checks thành công nhưng Chromium smoke chưa qua bước offline-indicator. Nhánh hiện tại đã thêm browser-online guard và regression test giữ phản hồi refresh thành công qua lúc offline; local full Chromium smoke và test platform đều qua. Cần chạy lại hosted Windows CI. |
+| P0.08 | Một phần | Hosted GitHub run #40376113800: Linux và Windows platform checks thành công; regression offline-indicator cũng qua. Chromium smoke dừng sau đó vì workspace-preview child trên Node 22.12 thoát mã 1 (HTTP 422 PREVIEW_PROCESS_EXITED). Local đã sửa lỗi supervisor lặp npm command arguments và thêm regression test; full Chromium smoke cùng platform suite đều qua. Hosted rerun vẫn đang chờ. |
 
 ## P1 — Domain và lưu trữ
 
@@ -106,7 +106,7 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 | P7.05 | Đạt | Hard token/USD limits, unknown/unpriced usage and retries are covered; provider list-rate estimates are not an invoice. |
 | P7.06 | Một phần | The 12-task live baseline completed 72/72 runs and 36/36 paired comparisons (298 canonical requests, 680,492 tokens, estimated $0.043602; report `evals/results/agent-office-v1-baseline-live-20261026.json`). A duplicate recovery attempt is disclosed separately. The report-bound human scoring sheet is blank, so quality comparison is not signed off. |
 | P7.07 | Đạt | Lifecycle content minimization, retention and memory tombstone/revision regressions. |
-| P7.08 | Một phần | Formal sign-off waits on P7.06 human review, owner UAT, and a green hosted Windows browser smoke. Run #40373063610 failed when the offline indicator did not appear within five seconds; the current local fix passes the deterministic stale-refresh regression and full Chromium smoke, pending hosted rerun. |
+| P7.08 | Một phần | Formal sign-off waits on P7.06 human review, owner UAT, and a green hosted Windows browser smoke. Run #40376113800 passes the offline regression but fails later when its Node 22.12 workspace-preview child exits with code 1. A local fix removes duplicated npm invocation arguments and passes the preview regression plus full Chromium smoke; hosted rerun remains pending. |
 
 ## P8 — Vận hành và bàn giao
 
@@ -135,14 +135,14 @@ Ngày kiểm tra: 27/10/2026. Phạm vi là toàn bộ P0–P8 trong [07-deliver
 - Visual continuity from Habblaud remains a P8.06 owner acceptance gate: sidebar, animated assignment movement, safe activity bubbles, persisted visual settings, and bottom Activity ticker/feed/toast are automated-smoke-covered; pixel-level owner UAT has not been signed off.
 - Release tests and the reconciled 72-run live-model baseline are summarized in `docs/AGENT-OFFICE-TEST-REPORT.md`; model quality and invoice are not inferred from request success or list-rate estimates.
 
-- Hosted GitHub Actions run #40373063610 on commit 1a5fc8d02b4d68c4acddcd8b5cdb3f45437fdf43: Linux passed; Windows reached the browser smoke after its platform checks and failed at scripts/office-browser-test.mjs:361, waiting for #connection-status.is-offline after Playwright emitted offline. The current branch fix passes the full local Chromium smoke, including a delayed-refresh offline regression, and the serial platform suite (328 passed, 7 skipped); hosted rerun is pending.
+- Hosted GitHub Actions run #40376113800 on commit 30a82ae: Linux passed, as did Windows typecheck, platform/client tests, configuration, i18n, secret scan, package smoke and the delayed-refresh offline regression. The remaining browser smoke failed at scripts/office-browser-test.mjs:1224: workspace preview returned HTTP 422 PREVIEW_PROCESS_EXITED because npm-cli.js running script preview exited with code 1 on Node 22.12.0; captured child output was empty. A local regression showed that the supervisor duplicated `run <script>` in the npm argument list; this is fixed and tested locally, but hosted rerun is pending. The latest serial platform suite passes 329 tests with 7 skipped, and full Chromium smoke passes.
 - Latest UAT package r108: 169 manifest-listed files, bundle SHA-256 `397e105c0a94de590dadf51cbf471d038c01f7c938c78bded02c8dcb52663086`; manifest verifies, clean install has 46 production packages, audit reports zero vulnerabilities, offline config validation passes with no model credentials and disabled execution, and isolated smoke passes health/office HTTP 200, schema 15 integrity, no provider calls and port release. The live 4851 process remains on r101.
 
 ## Gate còn lại trước khi gọi v1 hoàn tất
 
 1. Owner chạy checklist Windows UAT và xác nhận pixel-level UI cùng các workflow end-to-end.
 2. Chấm score sheet của live C10 pair và review sheet 72 lượt baseline theo rubric; chỉ kết luận chất lượng so sánh sau đó.
-3. The baseline is in the public Agent Office repository. Push the validated local fix, then rerun hosted Windows CI; upstream remains the Habblaud source.
+3. The baseline is in the public Agent Office repository. Push the validated local preview-argument fix and rerun hosted Windows CI; upstream remains the Habblaud source.
 4. Sau khi các gate trên đạt, tạo tag/release v1 và hoàn tất handover P8.08. Đối soát hóa đơn provider cần dữ liệu tài khoản của owner; file báo cáo hiện chỉ có usage và ước tính giá niêm yết.
 
 P9 trong backlog là sau v1 và không thuộc phạm vi release local-first này.
